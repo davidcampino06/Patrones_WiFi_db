@@ -1,0 +1,6 @@
+.env
+*.dump
+*.backup
+.DS_Store
+.idea/
+.vscode/
