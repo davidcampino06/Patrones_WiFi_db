@@ -6,8 +6,8 @@ backend se conecta a esta base de datos.
 ## Contenido
 
 ```text
-migrations/   V1…V9 en formato Flyway (V<n>__<descripcion>.sql)
-seeds/        seed_data.sql: usuarios, sedes, redes y 24 h de mediciones SIMULADAS
+migrations/   V1…V11 en formato Flyway (V<n>__<descripcion>.sql)
+seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios)
 tests/        schema_test.sql: estructura, restricciones y datos semilla
 docs/         schema.md: diagrama entidad-relación, tablas, decisiones e índices
 apply.sh      aplica migraciones con psql (alternativa a Flyway)
@@ -33,6 +33,8 @@ explicados en [docs/schema.md](docs/schema.md).
 | V7 | `analysis_results`, `ai_predictions` |
 | V8 | `alerts` |
 | V9 | índices según las consultas del backend |
+| V10 | elimina las cuentas de demostración y limita el usuario a 20 caracteres |
+| V11 | recomendaciones de IA de hasta 1500 caracteres y su origen (`RULES` o `CLAUDE`) |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
@@ -60,8 +62,7 @@ export DATABASE_URL=postgresql://wifisense:<password>@localhost:5432/wifisense
 
 ## Datos semilla
 
-- Usuarios `admin`, `analyst`, `viewer` (uno por rol). Contraseña de demostración en el encabezado de
-  `seeds/seed_data.sql`; cámbiala fuera del entorno local.
+- No crea usuarios: el backend crea al administrador desde variables de entorno y él crea las demás cuentas.
 - 2 sedes, 4 zonas, 4 redes. `WiFiSense-Guest` (2.4 GHz, abierta) tiene métricas degradadas a propósito para que
   el análisis encuentre algo.
 - 96 mediciones por red (24 h cada 15 min), tráfico, protocolos, 7 dispositivos y sesiones.
