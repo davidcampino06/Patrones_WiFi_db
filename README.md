@@ -6,7 +6,7 @@ backend se conecta a esta base de datos.
 ## Contenido
 
 ```text
-migrations/   V1…V11 en formato Flyway (V<n>__<descripcion>.sql)
+migrations/   V1…V12 en formato Flyway (V<n>__<descripcion>.sql)
 seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios)
 tests/        schema_test.sql: estructura, restricciones y datos semilla
 docs/         schema.md: diagrama entidad-relación, tablas, decisiones e índices
@@ -35,6 +35,7 @@ explicados en [docs/schema.md](docs/schema.md).
 | V9 | índices según las consultas del backend |
 | V10 | elimina las cuentas de demostración y limita el usuario a 20 caracteres |
 | V11 | recomendaciones de IA de hasta 1500 caracteres y su origen (`RULES` o `CLAUDE`) |
+| V12 | el usuario puede ser un correo: límite de 40 caracteres |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
