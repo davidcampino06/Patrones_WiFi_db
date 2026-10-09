@@ -76,8 +76,8 @@ SELECT pg_temp.assert_rejected(
 -- Seed data
 SELECT pg_temp.assert_true((SELECT count(*) FROM users) = 0, 'seed data creates no user accounts');
 SELECT pg_temp.assert_rejected(
-    $$INSERT INTO users (username, email, password_hash) VALUES (repeat('a', 21), 'long@x.io', 'x')$$,
-    'username longer than 20 characters is rejected');
+    $$INSERT INTO users (username, email, password_hash) VALUES (repeat('a', 41), 'long@x.io', 'x')$$,
+    'username longer than 40 characters is rejected');
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO ai_predictions (analysis_result_id, network_id, anomaly_detected, anomaly_score, severity,
                                   message, model_version, simulated_data, recommendation_source)
