@@ -1,13 +1,9 @@
 -- Demo data. All measurements are SIMULATED (source = 'SIMULATION').
--- Demo password for every user: WiFiSense2026!  (change it outside local environments)
 BEGIN;
 
 SELECT setseed(0.42);
 
-INSERT INTO users (username, email, password_hash, role) VALUES
-    ('admin',   'admin@wifisense.local',   '$2b$10$g0clS2PDVTPgj6azrUjz.uYqNkO/vHsEOKaja/dN4CLemn1OCwSe2', 'ADMIN'),
-    ('analyst', 'analyst@wifisense.local', '$2b$10$g0clS2PDVTPgj6azrUjz.uYqNkO/vHsEOKaja/dN4CLemn1OCwSe2', 'ANALYST'),
-    ('viewer',  'viewer@wifisense.local',  '$2b$10$g0clS2PDVTPgj6azrUjz.uYqNkO/vHsEOKaja/dN4CLemn1OCwSe2', 'VIEWER');
+-- No user accounts here: the backend creates them (see README).
 
 INSERT INTO locations (name, address, city) VALUES
     ('Main Campus', 'Calle 18 # 50-02', 'Pasto'),
@@ -92,7 +88,7 @@ CROSS JOIN (VALUES ('HTTPS', 443, 0), ('DNS', 53, 5), ('QUIC', 443, 30)) AS s(pr
 WHERE d.device_type <> 'ACCESS_POINT';
 
 INSERT INTO alerts (network_id, severity, message, status)
-SELECT id, 'WARNING', 'Network entered WARNING state', 'OPEN'
+SELECT id, 'WARNING', 'La red entró en estado de advertencia', 'OPEN'
 FROM networks WHERE ssid = 'WiFiSense-Guest';
 
 COMMIT;
