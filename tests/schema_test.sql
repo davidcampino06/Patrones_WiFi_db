@@ -45,7 +45,7 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO users (username, email, password_hash, role) VALUES ('hacker', 'h@x.io', 'x', 'ROOT')$$,
     'invalid role is rejected');
 SELECT pg_temp.assert_rejected(
-    $$INSERT INTO users (username, email, password_hash) VALUES ('admin', 'other@x.io', 'x')$$,
+    $$INSERT INTO users (username, email, password_hash) VALUES ('dup', 'd1@x.io', 'x'), ('dup', 'd2@x.io', 'x')$$,
     'duplicate username is rejected');
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO networks (zone_id, ssid, bssid, frequency_band, channel, security_type)
@@ -74,7 +74,15 @@ SELECT pg_temp.assert_rejected(
     'anomaly score outside [0,1] is rejected');
 
 -- Seed data
-SELECT pg_temp.assert_true((SELECT count(*) FROM users) = 3, 'three seed users (one per role)');
+SELECT pg_temp.assert_true((SELECT count(*) FROM users) = 0, 'seed data creates no user accounts');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO users (username, email, password_hash) VALUES (repeat('a', 21), 'long@x.io', 'x')$$,
+    'username longer than 20 characters is rejected');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO ai_predictions (analysis_result_id, network_id, anomaly_detected, anomaly_score, severity,
+                                  message, model_version, simulated_data, recommendation_source)
+      VALUES (1, 1, TRUE, 0.5, 'HIGH', 'x', 'v1', TRUE, 'GPT')$$,
+    'unknown recommendation source is rejected');
 SELECT pg_temp.assert_true((SELECT count(*) FROM networks) = 4, 'four seed networks');
 SELECT pg_temp.assert_true(
     (SELECT count(DISTINCT network_id) FROM measurements) = 4, 'every network has measurement history');
