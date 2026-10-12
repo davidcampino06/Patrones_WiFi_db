@@ -6,7 +6,7 @@ backend se conecta a esta base de datos.
 ## Contenido
 
 ```text
-migrations/   V1…V13 en formato Flyway (V<n>__<descripcion>.sql)
+migrations/   V1…V14 en formato Flyway (V<n>__<descripcion>.sql)
 seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios)
 tests/        schema_test.sql: estructura, restricciones y datos semilla
 docs/         schema.md: diagrama entidad-relación, tablas, decisiones e índices
@@ -17,7 +17,7 @@ docker-compose.yml  PostgreSQL 16 + Flyway para desarrollo local
 ## Tablas
 
 `users`, `locations`, `zones`, `networks`, `devices`, `measurements`, `traffic_observations`, `traffic_sessions`,
-`protocol_statistics`, `analysis_results`, `ai_predictions`, `alerts`. Relaciones, restricciones e índices
+`protocol_statistics`, `analysis_results`, `ai_predictions`, `alerts` y `home_networks`. Relaciones, restricciones e índices
 explicados en [docs/schema.md](docs/schema.md).
 
 ## Migraciones
@@ -37,6 +37,7 @@ explicados en [docs/schema.md](docs/schema.md).
 | V11 | recomendaciones de IA de hasta 1500 caracteres y su origen (`RULES` o `CLAUDE`) |
 | V12 | el usuario puede ser un correo: límite de 40 caracteres |
 | V13 | rol `USER` para los usuarios finales que se registran solos |
+| V14 | `home_networks`: redes que cada usuario final registra para sí (separadas de las de la universidad) |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
@@ -72,6 +73,6 @@ export DATABASE_URL=postgresql://wifisense:<password>@localhost:5432/wifisense
 
 ## Pruebas
 
-`tests/schema_test.sql` comprueba que existen las 12 tablas y 13 claves foráneas, que las restricciones rechazan
+`tests/schema_test.sql` comprueba que existen las 13 tablas y 14 claves foráneas, que las restricciones rechazan
 datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta resuelta sin fecha…) y que los datos
 semilla son coherentes. Cualquier fallo detiene la ejecución con `FAILED: <descripción>`.
