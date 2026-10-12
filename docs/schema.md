@@ -32,7 +32,7 @@ erDiagram
 | `traffic_sessions` | Sesiones por dispositivo | FK `device_id` · puerto 0–65535 · `ended_at ≥ started_at` |
 | `protocol_statistics` | Paquetes por protocolo y periodo | único (`network_id`, `protocol`, `period_start`) · `period_end ≥ period_start` |
 | `analysis_results` | Resultado de cada análisis | FK `network_id`, FK `requested_by` (SET NULL; NULL = monitoreo automático) · `score` 0–1 |
-| `ai_predictions` | Respuesta del modelo | FK único `analysis_result_id` (1:1) · `anomaly_score` 0–1 · `simulated_data` obligatorio |
+| `ai_predictions` | Respuesta del modelo | FK único `analysis_result_id` (1:1) · `anomaly_score` 0–1 · `simulated_data` obligatorio · `anomaly_type` (V15): causa probable; NULL en predicciones anteriores, `NONE` solo si no hay anomalía |
 | `alerts` | Alertas por cambio de estado | `status` ∈ OPEN/ACKNOWLEDGED/RESOLVED · CHECK: `resolved_at` existe si y solo si está RESOLVED |
 | `home_networks` | Redes que registra cada usuario final | FK `owner_id` → `users` (CASCADE) · nombre único por dueño sin importar mayúsculas · `contracted_mbps` 1–10 000 |
 
@@ -55,3 +55,4 @@ erDiagram
 | `idx_ai_predictions_anomalies` (parcial, `WHERE anomaly_detected`) | Lista de anomalías y conteo de 24 h |
 | `idx_alerts_open (status, created_at DESC)` | Alertas por estado y conteo de pendientes |
 | `idx_*_network`, `idx_zones_location` | Joins por clave foránea |
+| `idx_ai_predictions_anomaly_type` (V15, parcial) | Anomalías agrupadas por causa en un periodo |
