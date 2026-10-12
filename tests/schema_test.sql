@@ -92,6 +92,38 @@ SELECT pg_temp.assert_rejected(
 DELETE FROM users WHERE username = 'casa.prueba';
 SELECT pg_temp.assert_true((SELECT count(*) FROM home_networks) = 0, 'deleting a user deletes their networks');
 
+-- Probable cause of anomalies (V15). A real analysis row is used so only the V15 checks can reject.
+INSERT INTO analysis_results (network_id, analysis_type, detected_status, score, summary, measurement_count)
+SELECT id, 'ANOMALY_DETECTION', 'CRITICAL', 0.7, 'v15 test', 50 FROM networks ORDER BY id LIMIT 1;
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO ai_predictions (analysis_result_id, network_id, anomaly_detected, anomaly_score, severity,
+                                  message, model_version, simulated_data, anomaly_type)
+      SELECT id, network_id, TRUE, 0.7, 'HIGH', 'x', 'v1', TRUE, 'ALIENS' FROM analysis_results WHERE summary = 'v15 test'$$,
+    'unknown anomaly type is rejected');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO ai_predictions (analysis_result_id, network_id, anomaly_detected, anomaly_score, severity,
+                                  message, model_version, simulated_data, anomaly_type)
+      SELECT id, network_id, TRUE, 0.7, 'HIGH', 'x', 'v1', TRUE, 'NONE' FROM analysis_results WHERE summary = 'v15 test'$$,
+    'a detected anomaly needs a cause other than NONE');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO ai_predictions (analysis_result_id, network_id, anomaly_detected, anomaly_score, severity,
+                                  message, model_version, simulated_data, anomaly_type)
+      SELECT id, network_id, FALSE, 0.2, 'NONE', 'x', 'v1', TRUE, 'CONGESTION' FROM analysis_results WHERE summary = 'v15 test'$$,
+    'a normal result cannot carry a cause');
+INSERT INTO ai_predictions (analysis_result_id, network_id, anomaly_detected, anomaly_score, severity, message,
+                            model_version, simulated_data, anomaly_type)
+SELECT id, network_id, TRUE, 0.7, 'HIGH', 'x', 'v1', TRUE, 'CONGESTION' FROM analysis_results WHERE summary = 'v15 test';
+SELECT pg_temp.assert_true(
+    (SELECT anomaly_type FROM ai_predictions WHERE message = 'x') = 'CONGESTION', 'a diagnosed anomaly is stored');
+UPDATE ai_predictions SET anomaly_type = NULL WHERE message = 'x';
+SELECT pg_temp.assert_true(
+    (SELECT anomaly_type IS NULL FROM ai_predictions WHERE message = 'x'), 'older predictions may stay unclassified');
+DELETE FROM analysis_results WHERE summary = 'v15 test';
+SELECT pg_temp.assert_true(NOT EXISTS (SELECT 1 FROM ai_predictions WHERE message = 'x'), 'test prediction removed');
+SELECT pg_temp.assert_true(
+    EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_ai_predictions_anomaly_type'),
+    'anomalies can be grouped by cause using an index');
+
 -- Seed data
 SELECT pg_temp.assert_true((SELECT count(*) FROM users) = 0, 'seed data creates no user accounts');
 SELECT pg_temp.assert_rejected(
