@@ -3,6 +3,7 @@
 ```mermaid
 erDiagram
     users ||--o{ analysis_results : requests
+    users ||--o{ home_networks : owns
     locations ||--o{ zones : contains
     zones ||--o{ networks : hosts
     networks ||--o{ devices : connects
@@ -21,7 +22,7 @@ erDiagram
 
 | Tabla | Contenido | Claves y restricciones principales |
 |---|---|---|
-| `users` | Cuentas y rol | `username`, `email` únicos · `role` ∈ ADMIN/ANALYST/VIEWER · `password_hash` BCrypt |
+| `users` | Cuentas y rol | `username`, `email` únicos · `role` ∈ ADMIN/ANALYST/VIEWER/USER · `password_hash` BCrypt |
 | `locations` | Sedes | `name` único |
 | `zones` | Áreas de una sede | FK `location_id` (CASCADE) · único (`location_id`, `name`) |
 | `networks` | Redes Wi-Fi | FK `zone_id` (RESTRICT) · `bssid` único con formato MAC · banda, canal, seguridad, estado y fuente con CHECK |
@@ -33,6 +34,7 @@ erDiagram
 | `analysis_results` | Resultado de cada análisis | FK `network_id`, FK `requested_by` (SET NULL; NULL = monitoreo automático) · `score` 0–1 |
 | `ai_predictions` | Respuesta del modelo | FK único `analysis_result_id` (1:1) · `anomaly_score` 0–1 · `simulated_data` obligatorio |
 | `alerts` | Alertas por cambio de estado | `status` ∈ OPEN/ACKNOWLEDGED/RESOLVED · CHECK: `resolved_at` existe si y solo si está RESOLVED |
+| `home_networks` | Redes que registra cada usuario final | FK `owner_id` → `users` (CASCADE) · nombre único por dueño sin importar mayúsculas · `contracted_mbps` 1–10 000 |
 
 ## Decisiones
 
