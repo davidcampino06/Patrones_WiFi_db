@@ -38,6 +38,7 @@ explicados en [docs/schema.md](docs/schema.md).
 | V12 | el usuario puede ser un correo: límite de 40 caracteres |
 | V13 | rol `USER` para los usuarios finales que se registran solos |
 | V14 | `home_networks`: redes que cada usuario final registra para sí (separadas de las de la universidad) |
+| V15 | `ai_predictions.anomaly_type`: causa probable de cada anomalía según el diagnóstico de la IA |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
