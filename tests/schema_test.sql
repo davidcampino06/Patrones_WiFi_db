@@ -28,13 +28,14 @@ SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.tables
      WHERE table_schema = 'public' AND table_name IN (
         'users', 'locations', 'zones', 'networks', 'devices', 'measurements', 'traffic_observations',
-        'traffic_sessions', 'protocol_statistics', 'alerts', 'analysis_results', 'ai_predictions')) = 12,
-    'all 12 tables exist');
+        'traffic_sessions', 'protocol_statistics', 'alerts', 'analysis_results', 'ai_predictions',
+        'home_networks')) = 13,
+    'all 13 tables exist');
 
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.table_constraints
-     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 13,
-    'all 13 foreign keys are defined');
+     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 14,
+    'all 14 foreign keys are defined');
 
 SELECT pg_temp.assert_true(
     EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_measurements_network_time'),
@@ -44,8 +45,11 @@ SELECT pg_temp.assert_true(
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO users (username, email, password_hash, role) VALUES ('hacker', 'h@x.io', 'x', 'ROOT')$$,
     'invalid role is rejected');
+INSERT INTO users (username, email, password_hash, role) VALUES ('usuario.final', 'uf@x.io', 'x', 'USER');
+SELECT pg_temp.assert_true((SELECT role FROM users WHERE username = 'usuario.final') = 'USER', 'end-user role is accepted');
+DELETE FROM users WHERE username = 'usuario.final';
 SELECT pg_temp.assert_rejected(
-    $$INSERT INTO users (username, email, password_hash) VALUES ('admin', 'other@x.io', 'x')$$,
+    $$INSERT INTO users (username, email, password_hash) VALUES ('dup', 'd1@x.io', 'x'), ('dup', 'd2@x.io', 'x')$$,
     'duplicate username is rejected');
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO networks (zone_id, ssid, bssid, frequency_band, channel, security_type)
@@ -73,8 +77,31 @@ SELECT pg_temp.assert_rejected(
       VALUES (1, 1, TRUE, 1.7, 'HIGH', 'x', 'v1', TRUE)$$,
     'anomaly score outside [0,1] is rejected');
 
+-- End-user networks
+INSERT INTO users (username, email, password_hash, role) VALUES ('casa.prueba', 'cp@x.io', 'x', 'USER');
+INSERT INTO home_networks (owner_id, name) SELECT id, 'Casa' FROM users WHERE username = 'casa.prueba';
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO home_networks (owner_id, name) SELECT id, 'CASA' FROM users WHERE username = 'casa.prueba'$$,
+    'a user cannot repeat a network name (case-insensitive)');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO home_networks (owner_id, name) SELECT id, ' ' FROM users WHERE username = 'casa.prueba'$$,
+    'home network name cannot be blank');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO home_networks (owner_id, name, contracted_mbps) SELECT id, 'Oficina', 0 FROM users WHERE username = 'casa.prueba'$$,
+    'contracted speed must be positive');
+DELETE FROM users WHERE username = 'casa.prueba';
+SELECT pg_temp.assert_true((SELECT count(*) FROM home_networks) = 0, 'deleting a user deletes their networks');
+
 -- Seed data
-SELECT pg_temp.assert_true((SELECT count(*) FROM users) = 3, 'three seed users (one per role)');
+SELECT pg_temp.assert_true((SELECT count(*) FROM users) = 0, 'seed data creates no user accounts');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO users (username, email, password_hash) VALUES (repeat('a', 41), 'long@x.io', 'x')$$,
+    'username longer than 40 characters is rejected');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO ai_predictions (analysis_result_id, network_id, anomaly_detected, anomaly_score, severity,
+                                  message, model_version, simulated_data, recommendation_source)
+      VALUES (1, 1, TRUE, 0.5, 'HIGH', 'x', 'v1', TRUE, 'GPT')$$,
+    'unknown recommendation source is rejected');
 SELECT pg_temp.assert_true((SELECT count(*) FROM networks) = 4, 'four seed networks');
 SELECT pg_temp.assert_true(
     (SELECT count(DISTINCT network_id) FROM measurements) = 4, 'every network has measurement history');
