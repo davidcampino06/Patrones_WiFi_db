@@ -29,13 +29,13 @@ SELECT pg_temp.assert_true(
      WHERE table_schema = 'public' AND table_name IN (
         'users', 'locations', 'zones', 'networks', 'devices', 'measurements', 'traffic_observations',
         'traffic_sessions', 'protocol_statistics', 'alerts', 'analysis_results', 'ai_predictions',
-        'home_networks')) = 13,
-    'all 13 tables exist');
+        'home_networks', 'connection_tests')) = 14,
+    'all 14 tables exist');
 
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.table_constraints
-     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 14,
-    'all 14 foreign keys are defined');
+     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 15,
+    'all 15 foreign keys are defined');
 
 SELECT pg_temp.assert_true(
     EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_measurements_network_time'),
@@ -89,8 +89,35 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO home_networks (owner_id, name, contracted_mbps) SELECT id, 'Oficina', 0 FROM users WHERE username = 'casa.prueba'$$,
     'contracted speed must be positive');
+
+-- Connection tests (V16)
+INSERT INTO connection_tests (home_network_id, latency_ms, jitter_ms, download_mbps, upload_mbps, quality_score,
+                              quality_grade, quality_details)
+SELECT id, 24.5, 3.1, 180, 40, 92, 'EXCELLENT', '{"score": 92}' FROM home_networks WHERE name = 'Casa';
+INSERT INTO connection_tests (home_network_id, latency_ms, jitter_ms, download_mbps, upload_mbps)
+SELECT id, 40, 6, 90, 20 FROM home_networks WHERE name = 'Casa';
+SELECT pg_temp.assert_true((SELECT count(*) FROM connection_tests) = 2,
+    'a test is kept even when the AI could not grade it');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO connection_tests (home_network_id, latency_ms, jitter_ms, download_mbps, upload_mbps)
+      SELECT id, 0, 3, 100, 10 FROM home_networks WHERE name = 'Casa'$$,
+    'latency must be positive');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO connection_tests (home_network_id, latency_ms, jitter_ms, download_mbps, upload_mbps)
+      SELECT id, 20, 3, 20000, 10 FROM home_networks WHERE name = 'Casa'$$,
+    'speeds above 10 000 Mbps are rejected');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO connection_tests (home_network_id, latency_ms, jitter_ms, download_mbps, upload_mbps, quality_score)
+      SELECT id, 20, 3, 100, 10, 80 FROM home_networks WHERE name = 'Casa'$$,
+    'a score always comes with its grade');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO connection_tests (home_network_id, latency_ms, jitter_ms, download_mbps, upload_mbps, quality_score,
+                                    quality_grade)
+      SELECT id, 20, 3, 100, 10, 80, 'SUPER' FROM home_networks WHERE name = 'Casa'$$,
+    'unknown quality grade is rejected');
 DELETE FROM users WHERE username = 'casa.prueba';
 SELECT pg_temp.assert_true((SELECT count(*) FROM home_networks) = 0, 'deleting a user deletes their networks');
+SELECT pg_temp.assert_true((SELECT count(*) FROM connection_tests) = 0, '... and the tests of those networks');
 
 -- Probable cause of anomalies (V15). A real analysis row is used so only the V15 checks can reject.
 INSERT INTO analysis_results (network_id, analysis_type, detected_status, score, summary, measurement_count)
