@@ -29,13 +29,13 @@ SELECT pg_temp.assert_true(
      WHERE table_schema = 'public' AND table_name IN (
         'users', 'locations', 'zones', 'networks', 'devices', 'measurements', 'traffic_observations',
         'traffic_sessions', 'protocol_statistics', 'alerts', 'analysis_results', 'ai_predictions',
-        'home_networks', 'connection_tests')) = 14,
-    'all 14 tables exist');
+        'home_networks', 'connection_tests', 'agent_keys', 'agent_reports', 'agent_devices')) = 17,
+    'all 17 tables exist');
 
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.table_constraints
-     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 15,
-    'all 15 foreign keys are defined');
+     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 18,
+    'all 18 foreign keys are defined');
 
 SELECT pg_temp.assert_true(
     EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_measurements_network_time'),
@@ -115,9 +115,67 @@ SELECT pg_temp.assert_rejected(
                                     quality_grade)
       SELECT id, 20, 3, 100, 10, 80, 'SUPER' FROM home_networks WHERE name = 'Casa'$$,
     'unknown quality grade is rejected');
+-- Agent (V17-V19)
+INSERT INTO agent_keys (home_network_id, key_hash, key_prefix)
+SELECT id, repeat('ab', 32), 'wsa_AbC1' FROM home_networks WHERE name = 'Casa';
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_keys (home_network_id, key_hash, key_prefix)
+      SELECT id, repeat('cd', 32), 'wsa_XyZ9' FROM home_networks WHERE name = 'Casa'$$,
+    'a network has a single agent key');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_keys SET key_hash = 'wsa_la-clave-en-texto-plano-no-se-guarda-nunca-aqui-0000000000'$$,
+    'only the SHA-256 of the key is stored');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_keys SET key_prefix = 'Bearer'$$, 'key prefix keeps its format');
+
+INSERT INTO agent_reports (home_network_id, agent_version, ssid, authentication, band, channel, signal_dbm, latency_ms,
+                           jitter_ms, packet_loss_pct, device_count, new_device_count, security_score, security_grade,
+                           quality_score, anomaly_detected, anomaly_type, details)
+SELECT id, '1.0.0', 'Casa', 'WPA2', '5', 44, -58, 21.5, 2.1, 0, 7, 1, 90, 'SECURE', 88, FALSE, 'NONE',
+       '{"openPorts": [53, 80, 443]}' FROM home_networks WHERE name = 'Casa';
+INSERT INTO agent_reports (home_network_id, agent_version, device_count)
+SELECT id, '1.0.0', 1 FROM home_networks WHERE name = 'Casa';
+SELECT pg_temp.assert_true((SELECT count(*) FROM agent_reports) = 2,
+    'a report is kept even when the agent could not read the Wi-Fi and the AI was unavailable');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_reports (home_network_id, agent_version, device_count, authentication)
+      SELECT id, '1.0.0', 3, 'WPA9' FROM home_networks WHERE name = 'Casa'$$,
+    'unknown authentication is rejected');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_reports (home_network_id, agent_version, device_count, new_device_count)
+      SELECT id, '1.0.0', 2, 5 FROM home_networks WHERE name = 'Casa'$$,
+    'there cannot be more new devices than devices');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_reports (home_network_id, agent_version, device_count, security_score)
+      SELECT id, '1.0.0', 2, 70 FROM home_networks WHERE name = 'Casa'$$,
+    'a security score always comes with its grade');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_reports (home_network_id, agent_version, device_count, anomaly_detected, anomaly_type)
+      SELECT id, '1.0.0', 2, FALSE, 'CONGESTION' FROM home_networks WHERE name = 'Casa'$$,
+    'a normal report cannot carry an anomaly cause');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_reports (home_network_id, agent_version, device_count, signal_dbm)
+      SELECT id, '1.0.0', 2, 12 FROM home_networks WHERE name = 'Casa'$$,
+    'signal must be between -100 and 0 dBm');
+
+INSERT INTO agent_devices (home_network_id, fingerprint, label)
+SELECT id, '0123456789abcdef01234567', 'Celular' FROM home_networks WHERE name = 'Casa';
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_devices (home_network_id, fingerprint)
+      SELECT id, '9c:a2:f4:00:00:02' FROM home_networks WHERE name = 'Casa'$$,
+    'a MAC address is never stored, only its fingerprint');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_devices (home_network_id, fingerprint)
+      SELECT id, '0123456789abcdef01234567' FROM home_networks WHERE name = 'Casa'$$,
+    'a device is registered once per network');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_devices SET label = '   '$$, 'device name cannot be blank');
+
 DELETE FROM users WHERE username = 'casa.prueba';
 SELECT pg_temp.assert_true((SELECT count(*) FROM home_networks) = 0, 'deleting a user deletes their networks');
 SELECT pg_temp.assert_true((SELECT count(*) FROM connection_tests) = 0, '... and the tests of those networks');
+SELECT pg_temp.assert_true((SELECT count(*) FROM agent_keys) + (SELECT count(*) FROM agent_reports)
+                           + (SELECT count(*) FROM agent_devices) = 0, '... and their agent key, reports and devices');
 
 -- Probable cause of anomalies (V15). A real analysis row is used so only the V15 checks can reject.
 INSERT INTO analysis_results (network_id, analysis_type, detected_status, score, summary, measurement_count)
