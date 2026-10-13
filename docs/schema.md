@@ -5,6 +5,9 @@ erDiagram
     users ||--o{ analysis_results : requests
     users ||--o{ home_networks : owns
     home_networks ||--o{ connection_tests : tested_by
+    home_networks ||--o| agent_keys : authorizes
+    home_networks ||--o{ agent_reports : reported_by
+    home_networks ||--o{ agent_devices : seen_on
     locations ||--o{ zones : contains
     zones ||--o{ networks : hosts
     networks ||--o{ devices : connects
@@ -37,6 +40,9 @@ erDiagram
 | `alerts` | Alertas por cambio de estado | `status` ∈ OPEN/ACKNOWLEDGED/RESOLVED · CHECK: `resolved_at` existe si y solo si está RESOLVED |
 | `home_networks` | Redes que registra cada usuario final | FK `owner_id` → `users` (CASCADE) · nombre único por dueño sin importar mayúsculas · `contracted_mbps` 1–10 000 |
 | `connection_tests` | Pruebas de conexión desde Mi Wi-Fi | FK `home_network_id` (CASCADE) · latencia > 0 · velocidades 0–10 000 Mbps · `quality_score` 0–100 y `quality_grade` van juntos o ambos NULL (IA no disponible) · `quality_details` JSONB con el detalle que mostró la página |
+| `agent_keys` | Clave del agente WiFiSense de cada red | FK `home_network_id` (CASCADE) única: una clave por red · `key_hash` SHA-256 en hexadecimal (la clave nunca se guarda) · `key_prefix` visible para reconocerla · `last_seen_at` último reporte |
+| `agent_reports` | Reportes del agente con el veredicto de la IA | FK `home_network_id` (CASCADE) · seguridad del Wi-Fi ∈ OPEN/WEP/WPA/WPA2/WPA3/UNKNOWN · señal −100–0 dBm · `new_device_count` ≤ `device_count` · `security_score`/`security_grade` juntos o NULL · causa de anomalía como en V15 · `details` JSONB (puertos, hallazgos, calidad) |
+| `agent_devices` | Equipos vistos en cada red | PK (`home_network_id`, `fingerprint`) · `fingerprint` huella SHA-256 de 24 hex: nunca la MAC · `label` nombre que le pone el usuario · `first_seen_at` ≤ `last_seen_at` |
 
 ## Decisiones
 
@@ -46,6 +52,8 @@ erDiagram
   sencillo y JPA los mapea sin configuración extra.
 - **`TIMESTAMPTZ`** en todas las fechas; el backend trabaja en UTC.
 - **`DOUBLE PRECISION`** para métricas: son mediciones físicas, no montos.
+- **Privacidad del agente**: la clave se guarda como SHA-256 (como una contraseña de alta entropía) y los equipos
+  como huellas con sal; el `CHECK` de formato impide guardar por error una MAC o una clave en claro.
 
 ## Índices (V9)
 
@@ -59,3 +67,5 @@ erDiagram
 | `idx_*_network`, `idx_zones_location` | Joins por clave foránea |
 | `idx_ai_predictions_anomaly_type` (V15, parcial) | Anomalías agrupadas por causa en un periodo |
 | `idx_connection_tests_network_time` (V16) | Historial de pruebas de una red, de la más reciente a la más antigua |
+| `idx_agent_reports_network_time` (V18) | Últimos reportes del agente y ventana que analiza la IA |
+| `idx_agent_reports_received`, `idx_agent_devices_last_seen` (V18, V19) | Borrado diario de reportes y equipos de más de 30 días |
