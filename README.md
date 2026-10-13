@@ -17,7 +17,7 @@ docker-compose.yml  PostgreSQL 16 + Flyway para desarrollo local
 ## Tablas
 
 `users`, `locations`, `zones`, `networks`, `devices`, `measurements`, `traffic_observations`, `traffic_sessions`,
-`protocol_statistics`, `analysis_results`, `ai_predictions`, `alerts`, `home_networks` y `connection_tests`. Relaciones, restricciones e índices
+`protocol_statistics`, `analysis_results`, `ai_predictions`, `alerts`, `home_networks`, `connection_tests`, `agent_keys`, `agent_reports` y `agent_devices`. Relaciones, restricciones e índices
 explicados en [docs/schema.md](docs/schema.md).
 
 ## Migraciones
@@ -40,6 +40,9 @@ explicados en [docs/schema.md](docs/schema.md).
 | V14 | `home_networks`: redes que cada usuario final registra para sí (separadas de las de la universidad) |
 | V15 | `ai_predictions.anomaly_type`: causa probable de cada anomalía según el diagnóstico de la IA |
 | V16 | `connection_tests`: pruebas de conexión de los usuarios finales y su calificación de calidad |
+| V17 | `agent_keys`: clave del agente WiFiSense de cada red (solo su SHA-256) |
+| V18 | `agent_reports`: reportes del agente con la auditoría de seguridad, la calidad y las anomalías que da la IA |
+| V19 | `agent_devices`: equipos vistos en cada red (huella con sal, nunca la MAC) y el nombre que les pone el usuario |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
@@ -75,6 +78,10 @@ export DATABASE_URL=postgresql://wifisense:<password>@localhost:5432/wifisense
 
 ## Pruebas
 
-`tests/schema_test.sql` comprueba que existen las 14 tablas y 15 claves foráneas, que las restricciones rechazan
+`tests/schema_test.sql` comprueba que existen las 17 tablas y 18 claves foráneas, que las restricciones rechazan
 datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta resuelta sin fecha…) y que los datos
 semilla son coherentes. Cualquier fallo detiene la ejecución con `FAILED: <descripción>`.
+
+`tests/verificar_agente.sql` comprueba, sin modificar nada, que una base existente (por ejemplo la de Railway) ya
+tiene V17–V19: cada fila debe decir `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
+DBeaver las claves, los reportes, las vulnerabilidades y los equipos que envía el agente.
