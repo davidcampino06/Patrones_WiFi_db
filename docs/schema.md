@@ -4,6 +4,7 @@
 erDiagram
     users ||--o{ analysis_results : requests
     users ||--o{ home_networks : owns
+    home_networks ||--o{ connection_tests : tested_by
     locations ||--o{ zones : contains
     zones ||--o{ networks : hosts
     networks ||--o{ devices : connects
@@ -35,6 +36,7 @@ erDiagram
 | `ai_predictions` | Respuesta del modelo | FK único `analysis_result_id` (1:1) · `anomaly_score` 0–1 · `simulated_data` obligatorio · `anomaly_type` (V15): causa probable; NULL en predicciones anteriores, `NONE` solo si no hay anomalía |
 | `alerts` | Alertas por cambio de estado | `status` ∈ OPEN/ACKNOWLEDGED/RESOLVED · CHECK: `resolved_at` existe si y solo si está RESOLVED |
 | `home_networks` | Redes que registra cada usuario final | FK `owner_id` → `users` (CASCADE) · nombre único por dueño sin importar mayúsculas · `contracted_mbps` 1–10 000 |
+| `connection_tests` | Pruebas de conexión desde Mi Wi-Fi | FK `home_network_id` (CASCADE) · latencia > 0 · velocidades 0–10 000 Mbps · `quality_score` 0–100 y `quality_grade` van juntos o ambos NULL (IA no disponible) · `quality_details` JSONB con el detalle que mostró la página |
 
 ## Decisiones
 
@@ -56,3 +58,4 @@ erDiagram
 | `idx_alerts_open (status, created_at DESC)` | Alertas por estado y conteo de pendientes |
 | `idx_*_network`, `idx_zones_location` | Joins por clave foránea |
 | `idx_ai_predictions_anomaly_type` (V15, parcial) | Anomalías agrupadas por causa en un periodo |
+| `idx_connection_tests_network_time` (V16) | Historial de pruebas de una red, de la más reciente a la más antigua |
