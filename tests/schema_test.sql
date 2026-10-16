@@ -30,13 +30,13 @@ SELECT pg_temp.assert_true(
         'users', 'locations', 'zones', 'networks', 'devices', 'measurements', 'traffic_observations',
         'traffic_sessions', 'protocol_statistics', 'alerts', 'analysis_results', 'ai_predictions',
         'home_networks', 'connection_tests', 'agent_keys', 'agent_reports', 'agent_devices', 'password_reset_tokens',
-        'agent_pairing_codes')) = 19,
-    'all 19 tables exist');
+        'agent_pairing_codes', 'alert_preferences', 'agent_alerts')) = 21,
+    'all 21 tables exist');
 
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.table_constraints
-     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 20,
-    'all 20 foreign keys are defined');
+     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 22,
+    'all 22 foreign keys are defined');
 
 SELECT pg_temp.assert_true(
     EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_measurements_network_time'),
@@ -172,6 +172,35 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$UPDATE agent_devices SET label = '   '$$, 'device name cannot be blank');
 
+-- Device maker and authorization (V23)
+UPDATE agent_devices SET vendor = 'Apple', authorized = FALSE WHERE fingerprint = '0123456789abcdef01234567';
+SELECT pg_temp.assert_true(
+    (SELECT NOT authorized FROM agent_devices WHERE fingerprint = '0123456789abcdef01234567'),
+    'a device can be marked as not authorized');
+UPDATE agent_devices SET hostname = 'iPhone-de-Ana' WHERE fingerprint = '0123456789abcdef01234567';
+SELECT pg_temp.assert_true(
+    (SELECT hostname FROM agent_devices WHERE fingerprint = '0123456789abcdef01234567') = 'iPhone-de-Ana',
+    'a device keeps the name it announces on the network');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_devices SET hostname = '   ' WHERE fingerprint = '0123456789abcdef01234567'$$,
+    'a device name from the network cannot be blank');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_devices SET vendor = '   ' WHERE fingerprint = '0123456789abcdef01234567'$$,
+    'device maker cannot be blank');
+
+-- Email alerts (V24)
+INSERT INTO alert_preferences (user_id) SELECT id FROM users WHERE username = 'casa.prueba';
+SELECT pg_temp.assert_true(
+    (SELECT email_new_device AND email_security AND email_anomaly FROM alert_preferences
+     WHERE user_id = (SELECT id FROM users WHERE username = 'casa.prueba')),
+    'alerts are on by default');
+INSERT INTO agent_alerts (home_network_id, type, detail)
+SELECT id, 'NEW_DEVICE', 'Apareció un equipo nuevo' FROM home_networks WHERE name = 'Casa';
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_alerts (home_network_id, type, detail)
+      SELECT id, 'OTRO', 'x' FROM home_networks WHERE name = 'Casa'$$,
+    'unknown alert type is rejected');
+
 -- Account recovery (V20, V21)
 UPDATE users SET phone = '+573001234567' WHERE username = 'casa.prueba';
 SELECT pg_temp.assert_rejected(
@@ -209,6 +238,8 @@ SELECT pg_temp.assert_true((SELECT count(*) FROM agent_keys) + (SELECT count(*) 
                            + (SELECT count(*) FROM agent_devices) = 0, '... and their agent key, reports and devices');
 SELECT pg_temp.assert_true((SELECT count(*) FROM password_reset_tokens) + (SELECT count(*) FROM agent_pairing_codes) = 0,
     '... and their reset links and pairing codes');
+SELECT pg_temp.assert_true((SELECT count(*) FROM agent_alerts) + (SELECT count(*) FROM alert_preferences) = 0,
+    '... and their alerts and alert preferences');
 
 -- Probable cause of anomalies (V15). A real analysis row is used so only the V15 checks can reject.
 INSERT INTO analysis_results (network_id, analysis_type, detected_status, score, summary, measurement_count)
