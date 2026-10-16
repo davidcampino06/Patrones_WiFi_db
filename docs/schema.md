@@ -4,10 +4,12 @@
 erDiagram
     users ||--o{ analysis_results : requests
     users ||--o{ home_networks : owns
+    users ||--o{ password_reset_tokens : recovers_with
     home_networks ||--o{ connection_tests : tested_by
     home_networks ||--o| agent_keys : authorizes
     home_networks ||--o{ agent_reports : reported_by
     home_networks ||--o{ agent_devices : seen_on
+    home_networks ||--o| agent_pairing_codes : pairs_with
     locations ||--o{ zones : contains
     zones ||--o{ networks : hosts
     networks ||--o{ devices : connects
@@ -26,7 +28,7 @@ erDiagram
 
 | Tabla | Contenido | Claves y restricciones principales |
 |---|---|---|
-| `users` | Cuentas y rol | `username`, `email` únicos · `role` ∈ ADMIN/ANALYST/VIEWER/USER · `password_hash` BCrypt |
+| `users` | Cuentas y rol | `username`, `email` únicos · `role` ∈ ADMIN/ANALYST/VIEWER/USER · `password_hash` BCrypt · `phone` opcional en formato internacional (V20) · `password_changed_at`: las sesiones emitidas antes dejan de valer (V20) |
 | `locations` | Sedes | `name` único |
 | `zones` | Áreas de una sede | FK `location_id` (CASCADE) · único (`location_id`, `name`) |
 | `networks` | Redes Wi-Fi | FK `zone_id` (RESTRICT) · `bssid` único con formato MAC · banda, canal, seguridad, estado y fuente con CHECK |
@@ -42,6 +44,8 @@ erDiagram
 | `connection_tests` | Pruebas de conexión desde Mi Wi-Fi | FK `home_network_id` (CASCADE) · latencia > 0 · velocidades 0–10 000 Mbps · `quality_score` 0–100 y `quality_grade` van juntos o ambos NULL (IA no disponible) · `quality_details` JSONB con el detalle que mostró la página |
 | `agent_keys` | Clave del agente WiFiSense de cada red | FK `home_network_id` (CASCADE) única: una clave por red · `key_hash` SHA-256 en hexadecimal (la clave nunca se guarda) · `key_prefix` visible para reconocerla · `last_seen_at` último reporte |
 | `agent_reports` | Reportes del agente con el veredicto de la IA | FK `home_network_id` (CASCADE) · seguridad del Wi-Fi ∈ OPEN/WEP/WPA/WPA2/WPA3/UNKNOWN · señal −100–0 dBm · `new_device_count` ≤ `device_count` · `security_score`/`security_grade` juntos o NULL · causa de anomalía como en V15 · `details` JSONB (puertos, hallazgos, calidad) |
+| `password_reset_tokens` | Enlaces para restablecer la contraseña (V21) | FK `user_id` (CASCADE) · `token_hash` SHA-256 único (el enlace nunca se guarda) · `expires_at` > `created_at` · `used_at`: un enlace sirve una sola vez |
+| `agent_pairing_codes` | Código corto para instalar el agente (V22) | FK `home_network_id` (CASCADE) única: un código pendiente por red · `code_hash` SHA-256 · vence como máximo en 1 hora |
 | `agent_devices` | Equipos vistos en cada red | PK (`home_network_id`, `fingerprint`) · `fingerprint` huella SHA-256 de 24 hex: nunca la MAC · `label` nombre que le pone el usuario · `first_seen_at` ≤ `last_seen_at` |
 
 ## Decisiones
@@ -69,3 +73,5 @@ erDiagram
 | `idx_connection_tests_network_time` (V16) | Historial de pruebas de una red, de la más reciente a la más antigua |
 | `idx_agent_reports_network_time` (V18) | Últimos reportes del agente y ventana que analiza la IA |
 | `idx_agent_reports_received`, `idx_agent_devices_last_seen` (V18, V19) | Borrado diario de reportes y equipos de más de 30 días |
+| `idx_users_email_lower` (V20) | Buscar la cuenta por correo sin importar mayúsculas (recuperación) |
+| `idx_password_reset_tokens_user`, `idx_password_reset_tokens_expiry` (V21) | Invalidar enlaces anteriores y borrar los vencidos |
