@@ -1,0 +1,60 @@
+# Checks every change of the schema on a real PostgreSQL 16 before it can reach Railway: all the migrations from zero,
+# the demo data, the least-privilege role, every SQL test, the read-only verifications, an upgrade on top of existing
+# data (like production) and Flyway applying the same files. Runs on every Pull Request and on main.
+name: Base de datos
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migraciones:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Throwaway database that lives only during this job; it is not a secret of the project.
+          POSTGRES_PASSWORD: solo-para-ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ADMIN_URL: postgresql://postgres:solo-para-ci@localhost:5432/postgres
+      DATABASE_URL: postgresql://postgres:solo-para-ci@localhost:5432/wifisense
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Migraciones, datos semilla, rol de la aplicación y pruebas
+        run: |
+          psql "$ADMIN_URL" -q -c "CREATE DATABASE wifisense"
+          bash apply.sh --seed --security --test
+
+      - name: Verificaciones de solo lectura (todas deben decir OK)
+        run: |
+          status=0
+          for file in tests/verificar_*.sql tests/revisar_antes_de_aplicar.sql; do
+            result=$(psql "$DATABASE_URL" -At -v ON_ERROR_STOP=1 -f "$file")
+            echo "== $file"; echo "$result"
+            if grep -Eq "\|(FALTA|REVISAR)" <<<"$result"; then status=1; fi
+          done
+          exit $status
+
+      - name: Actualizar una base que ya tiene datos (como Railway)
+        run: bash tests/actualizacion_test.sh
+
+      - name: Flyway aplica las mismas migraciones
+        run: |
+          psql "$ADMIN_URL" -q -c "CREATE DATABASE flyway_ci"
+          docker run --rm --network host -v "$PWD/migrations:/flyway/sql:ro" flyway/flyway:10 \
+            -url=jdbc:postgresql://localhost:5432/flyway_ci -user=postgres -password=solo-para-ci \
+            -locations=filesystem:/flyway/sql migrate validate
