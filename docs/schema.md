@@ -45,12 +45,12 @@ erDiagram
 | `home_networks` | Redes que registra cada usuario final | FK `owner_id` → `users` (CASCADE) · nombre único por dueño sin importar mayúsculas · `contracted_mbps` 1–10 000 |
 | `connection_tests` | Pruebas de conexión desde Mi Wi-Fi | FK `home_network_id` (CASCADE) · latencia > 0 · velocidades 0–10 000 Mbps · `quality_score` 0–100 y `quality_grade` van juntos o ambos NULL (IA no disponible) · `quality_details` JSONB con el detalle que mostró la página |
 | `agent_keys` | Clave del agente WiFiSense de cada red | FK `home_network_id` (CASCADE) única: una clave por red · `key_hash` SHA-256 en hexadecimal (la clave nunca se guarda) · `key_prefix` visible para reconocerla · `last_seen_at` último reporte |
-| `agent_reports` | Reportes del agente con el veredicto de la IA | FK `home_network_id` (CASCADE) · seguridad del Wi-Fi ∈ OPEN/WEP/WPA/WPA2/WPA3/UNKNOWN · señal −100–0 dBm · `new_device_count` ≤ `device_count` · `security_score`/`security_grade` juntos o NULL · causa de anomalía como en V15 · `details` JSONB (puertos, hallazgos, calidad) |
+| `agent_reports` | Reportes del agente con el veredicto de la IA | FK `home_network_id` (CASCADE) · seguridad del Wi-Fi ∈ OPEN/WEP/WPA/WPA2/WPA3/UNKNOWN · señal −100–0 dBm · `new_device_count` ≤ `device_count` · `security_score`/`security_grade` juntos o NULL · causa de anomalía como en V15 · `details` JSONB (puertos, hallazgos, calidad y canal recomendado) |
 | `password_reset_tokens` | Enlaces para restablecer la contraseña (V21) | FK `user_id` (CASCADE) · `token_hash` SHA-256 único (el enlace nunca se guarda) · `expires_at` > `created_at` · `used_at`: un enlace sirve una sola vez |
 | `agent_pairing_codes` | Código corto para instalar el agente (V22) | FK `home_network_id` (CASCADE) única: un código pendiente por red · `code_hash` SHA-256 · vence como máximo en 1 hora |
 | `alert_preferences` | Qué avisos por correo quiere cada usuario (V24) | PK/FK `user_id` (CASCADE) · tres interruptores, todos encendidos por defecto |
 | `agent_alerts` | Historial de avisos de cada red y antirrepetición del correo (V24) | FK `home_network_id` (CASCADE) · `type` ∈ NEW_DEVICE/UNAUTHORIZED_DEVICE/SECURITY/ANOMALY · `emailed` si ya se envió |
-| `agent_devices` | Equipos vistos en cada red | PK (`home_network_id`, `fingerprint`) · `fingerprint` huella SHA-256 de 24 hex: nunca la MAC · `label` nombre que le pone el usuario · `vendor` fabricante y `hostname` nombre en la red según el OUI (V23) · `authorized` FALSE = marcado como no autorizado (V23) · `first_seen_at` ≤ `last_seen_at` |
+| `agent_devices` | Equipos vistos en cada red | PK (`home_network_id`, `fingerprint`) · `fingerprint` huella SHA-256 de 24 hex: nunca la MAC · `label` nombre que le pone el usuario · `vendor` fabricante y `hostname` nombre en la red según el OUI (V23) · `authorized` FALSE = marcado como no autorizado (V23) · `private_mac` usa una MAC aleatoria, casi siempre un celular o tableta (V25) · `first_seen_at` ≤ `last_seen_at` |
 
 ## Decisiones
 
@@ -79,5 +79,6 @@ erDiagram
 | `idx_agent_reports_received`, `idx_agent_devices_last_seen` (V18, V19) | Borrado diario de reportes y equipos de más de 30 días |
 | `idx_agent_devices_unauthorized` (V23) | Equipos no autorizados aún conectados, primero en Mi Wi-Fi |
 | `idx_agent_alerts_network_time` (V24) | Últimos avisos de una red y comprobar si un aviso ya se envió hace poco |
+| `idx_agent_reports_anomalies` (V25) | Parcial (`WHERE anomaly_detected`): redes con anomalías en las últimas 24 h, para el panel del equipo |
 | `idx_users_email_lower` (V20) | Buscar la cuenta por correo sin importar mayúsculas (recuperación) |
 | `idx_password_reset_tokens_user`, `idx_password_reset_tokens_expiry` (V21) | Invalidar enlaces anteriores y borrar los vencidos |
