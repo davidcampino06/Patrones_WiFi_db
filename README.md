@@ -48,6 +48,7 @@ explicados en [docs/schema.md](docs/schema.md).
 | V22 | `agent_pairing_codes`: código corto para instalar el agente sin copiar la clave larga |
 | V23 | `agent_devices.vendor` (fabricante según el OUI), `hostname` (nombre del equipo en la red) y `authorized` (equipo marcado como no autorizado) |
 | V24 | `alert_preferences` y `agent_alerts`: avisos por correo (equipo nuevo, seguridad, anomalía) y su historial |
+| V25 | `agent_devices.private_mac` (celular o tableta con MAC aleatoria) e índice parcial de anomalías para el panel del equipo |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
@@ -88,5 +89,5 @@ datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta res
 semilla son coherentes. Cualquier fallo detiene la ejecución con `FAILED: <descripción>`.
 
 `tests/verificar_agente.sql` comprueba, sin modificar nada, que una base existente (por ejemplo la de Railway) ya
-tiene V17–V19, `tests/verificar_recuperacion.sql` lo mismo para V20–V22 y `tests/verificar_alertas.sql` para V23–V24: cada fila debe decir `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
+tiene V17–V19, `tests/verificar_recuperacion.sql` lo mismo para V20–V22, `tests/verificar_alertas.sql` para V23–V24 y `tests/verificar_identificacion.sql` para V25: cada fila debe decir `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
 DBeaver las claves, los reportes, las vulnerabilidades y los equipos que envía el agente.
