@@ -5,6 +5,7 @@ erDiagram
     users ||--o{ analysis_results : requests
     users ||--o{ home_networks : owns
     users ||--o{ password_reset_tokens : recovers_with
+    users ||--o{ refresh_tokens : renews_session_with
     users ||--o| alert_preferences : configures
     home_networks ||--o{ agent_alerts : raises
     home_networks ||--o{ connection_tests : tested_by
@@ -30,9 +31,9 @@ erDiagram
 
 | Tabla | Contenido | Claves y restricciones principales |
 |---|---|---|
-| `users` | Cuentas y rol | `username`, `email` únicos · `role` ∈ ADMIN/ANALYST/VIEWER/USER · `password_hash` BCrypt · `phone` opcional en formato internacional (V20) · `password_changed_at`: las sesiones emitidas antes dejan de valer (V20) |
-| `locations` | Sedes | `name` único |
-| `zones` | Áreas de una sede | FK `location_id` (CASCADE) · único (`location_id`, `name`) |
+| `users` | Cuentas y rol | `username`, `email` únicos sin importar mayúsculas y correo guardado en minúsculas (V28) · `role` ∈ ADMIN/ANALYST/VIEWER/USER · `password_hash` BCrypt · `phone` opcional en formato internacional (V20) · `password_changed_at`: las sesiones emitidas antes dejan de valer (V20) |
+| `locations` | Sedes | `name` único · nombre, dirección y ciudad no vacíos (V29) |
+| `zones` | Áreas de una sede | FK `location_id` (CASCADE) · único (`location_id`, `name`) · nombre no vacío, piso entre -10 y 200 (V29) |
 | `networks` | Redes Wi-Fi | FK `zone_id` (RESTRICT) · `bssid` único con formato MAC · banda, canal, seguridad, estado y fuente con CHECK |
 | `devices` | Clientes y AP | FK `network_id` (CASCADE) · `mac_address` único con formato MAC · señal entre -100 y 0 dBm |
 | `measurements` | Rendimiento por lectura | FK `network_id` · latencia/jitter ≥ 0 · pérdida 0–100 · `bandwidth`, `signal`, `connected_devices` opcionales porque no toda fuente los mide · `source` indica si es SIMULATION |
@@ -47,6 +48,7 @@ erDiagram
 | `agent_keys` | Clave del agente WiFiSense de cada red | FK `home_network_id` (CASCADE) única: una clave por red · `key_hash` SHA-256 en hexadecimal (la clave nunca se guarda) · `key_prefix` visible para reconocerla · `last_seen_at` último reporte |
 | `agent_reports` | Reportes del agente con el veredicto de la IA | FK `home_network_id` (CASCADE) · seguridad del Wi-Fi ∈ OPEN/WEP/WPA/WPA2/WPA3/UNKNOWN · señal −100–0 dBm · `new_device_count` ≤ `device_count` · `security_score`/`security_grade` juntos o NULL · causa de anomalía como en V15 · `details` JSONB (puertos, hallazgos, calidad y canal recomendado) |
 | `password_reset_tokens` | Enlaces para restablecer la contraseña (V21) | FK `user_id` (CASCADE) · `token_hash` SHA-256 único (el enlace nunca se guarda) · `expires_at` > `created_at` · `used_at`: un enlace sirve una sola vez |
+| `refresh_tokens` | Sesiones que se renuevan solas (V30) | FK `user_id` (CASCADE) · `token_hash` SHA-256 único · `family_id`: todos los tokens de un mismo inicio de sesión · `used_at` (rotación) y `revoked_at` · `expires_at` > `created_at` |
 | `agent_pairing_codes` | Código corto para instalar el agente (V22) | FK `home_network_id` (CASCADE) única: un código pendiente por red · `code_hash` SHA-256 · vence como máximo en 1 hora |
 | `alert_preferences` | Qué avisos por correo quiere cada usuario (V24) | PK/FK `user_id` (CASCADE) · tres interruptores, todos encendidos por defecto |
 | `agent_alerts` | Historial de avisos de cada red y antirrepetición del correo (V24) | FK `home_network_id` (CASCADE) · `type` ∈ NEW_DEVICE/UNAUTHORIZED_DEVICE/SECURITY/ANOMALY · `emailed` si ya se envió |
@@ -62,8 +64,16 @@ erDiagram
 - **`DOUBLE PRECISION`** para métricas: son mediciones físicas, no montos.
 - **Privacidad del agente**: la clave se guarda como SHA-256 (como una contraseña de alta entropía) y los equipos
   como huellas con sal; el `CHECK` de formato impide guardar por error una MAC o una clave en claro.
+- **Usuarios y correos sin importar mayúsculas (V28)**: la unicidad usa `lower(...)` y un disparador guarda cada
+  correo en minúsculas, así ninguna aplicación (ni una versión anterior del backend) puede crear `Ana` y `ana`.
+- **Reglas también en la base (V29)**: lo que valida el backend (nombres no vacíos, JSON como objeto) también lo
+  impone la base, para que un `INSERT` desde DBeaver o un script no rompa la aplicación.
+- **Refresh tokens con rotación (V30)**: cada token sirve una vez y se cambia por otro de la misma familia; si uno ya
+  usado vuelve a aparecer, alguien lo copió y se revoca la familia entera.
+- **Mínimos privilegios**: el backend usa `wifisense_app`, que no puede cambiar el esquema (ver `seguridad.md`).
+- **Diccionario en la base (V31–V33)**: cada tabla y columna tiene `COMMENT ON`; DBeaver lo muestra.
 
-## Índices (V9)
+## Índices
 
 | Índice | Consulta que acelera |
 |---|---|
@@ -80,5 +90,12 @@ erDiagram
 | `idx_agent_devices_unauthorized` (V23) | Equipos no autorizados aún conectados, primero en Mi Wi-Fi |
 | `idx_agent_alerts_network_time` (V24) | Últimos avisos de una red y comprobar si un aviso ya se envió hace poco |
 | `idx_agent_reports_anomalies` (V25) | Parcial (`WHERE anomaly_detected`): redes con anomalías en las últimas 24 h, para el panel del equipo |
-| `idx_users_email_lower` (V20) | Buscar la cuenta por correo sin importar mayúsculas (recuperación) |
+| `uq_users_email_lower`, `uq_users_username_lower` (V28, únicos) | Buscar la cuenta por correo o usuario sin importar mayúsculas, e impedir duplicados como `Ana`/`ana` (reemplazan a `idx_users_email_lower` de V20) |
 | `idx_password_reset_tokens_user`, `idx_password_reset_tokens_expiry` (V21) | Invalidar enlaces anteriores y borrar los vencidos |
+| `idx_analysis_results_requested_by`, `idx_ai_predictions_network`, `idx_alerts_analysis_result` (V26) | Las tres claves foráneas que no tenían índice: borrar una cuenta, una red o un análisis sin recorrer tablas completas |
+| `idx_measurements_measured_at`, `idx_traffic_observations_observed_at`, `idx_traffic_sessions_started_at`, `idx_protocol_statistics_period_start`, `idx_analysis_results_created_at`, `idx_agent_alerts_created_at`, `idx_agent_pairing_codes_expires_at` (V27) | Limpieza nocturna por fecha de todas las redes a la vez (los índices por red no sirven para "todo lo anterior a esta fecha") |
+| `idx_alerts_resolved_at` (V27, parcial `WHERE status = 'RESOLVED'`) | Borrar solo alertas resueltas antiguas; las abiertas nunca se borran |
+| `idx_refresh_tokens_user`, `idx_refresh_tokens_family`, `idx_refresh_tokens_expires_at` (V30) | Cerrar todas las sesiones de una cuenta, revocar una familia robada y borrar las vencidas |
+
+`tests/optimizacion_test.sql` comprueba con `EXPLAIN` que cada consulta de esta tabla puede usar su índice y que no
+queda ninguna clave foránea sin índice.
