@@ -3,7 +3,7 @@
 
 CREATE OR REPLACE FUNCTION pg_temp.assert_true(condition BOOLEAN, description TEXT) RETURNS VOID AS $$
 BEGIN
-    IF NOT condition THEN
+    IF condition IS NOT TRUE THEN  -- NULL (for example a row that does not exist) is a failure, not a pass
         RAISE EXCEPTION 'FAILED: %', description;
     END IF;
     RAISE NOTICE 'PASSED: %', description;
@@ -200,6 +200,22 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO agent_alerts (home_network_id, type, detail)
       SELECT id, 'OTRO', 'x' FROM home_networks WHERE name = 'Casa'$$,
     'unknown alert type is rejected');
+
+-- Private (random) MAC addresses and the team panel (V25)
+SELECT pg_temp.assert_true(
+    (SELECT NOT private_mac FROM agent_devices WHERE fingerprint = '0123456789abcdef01234567'),
+    'a device is not private until the agent says so');
+UPDATE agent_devices SET private_mac = TRUE WHERE fingerprint = '0123456789abcdef01234567';
+SELECT pg_temp.assert_true(
+    (SELECT private_mac FROM agent_devices WHERE fingerprint = '0123456789abcdef01234567'),
+    'a device can be flagged as using a private MAC');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_devices SET private_mac = NULL WHERE fingerprint = '0123456789abcdef01234567'$$,
+    'the private MAC flag is never unknown');
+SELECT pg_temp.assert_true(
+    EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_agent_reports_anomalies'
+            AND indexdef LIKE '%WHERE anomaly_detected%'),
+    'the team panel counts recent anomalies with a partial index');
 
 -- Account recovery (V20, V21)
 UPDATE users SET phone = '+573001234567' WHERE username = 'casa.prueba';
