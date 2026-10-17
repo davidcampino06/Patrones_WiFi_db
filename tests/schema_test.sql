@@ -1,27 +1,5 @@
 -- Schema validation: run after migrations + seeds. Any failed assertion aborts with an error.
-\set ON_ERROR_STOP on
-
-CREATE OR REPLACE FUNCTION pg_temp.assert_true(condition BOOLEAN, description TEXT) RETURNS VOID AS $$
-BEGIN
-    IF condition IS NOT TRUE THEN  -- NULL (for example a row that does not exist) is a failure, not a pass
-        RAISE EXCEPTION 'FAILED: %', description;
-    END IF;
-    RAISE NOTICE 'PASSED: %', description;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION pg_temp.assert_rejected(statement TEXT, description TEXT) RETURNS VOID AS $$
-BEGIN
-    BEGIN
-        EXECUTE statement;
-    EXCEPTION WHEN integrity_constraint_violation OR check_violation OR unique_violation
-                   OR foreign_key_violation OR not_null_violation THEN
-        RAISE NOTICE 'PASSED: %', description;
-        RETURN;
-    END;
-    RAISE EXCEPTION 'FAILED: % (statement was accepted)', description;
-END;
-$$ LANGUAGE plpgsql;
+\ir _asserts.sql
 
 -- Structure
 SELECT pg_temp.assert_true(
@@ -30,13 +8,13 @@ SELECT pg_temp.assert_true(
         'users', 'locations', 'zones', 'networks', 'devices', 'measurements', 'traffic_observations',
         'traffic_sessions', 'protocol_statistics', 'alerts', 'analysis_results', 'ai_predictions',
         'home_networks', 'connection_tests', 'agent_keys', 'agent_reports', 'agent_devices', 'password_reset_tokens',
-        'agent_pairing_codes', 'alert_preferences', 'agent_alerts')) = 21,
-    'all 21 tables exist');
+        'agent_pairing_codes', 'alert_preferences', 'agent_alerts', 'refresh_tokens')) = 22,
+    'all 22 tables exist');
 
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.table_constraints
-     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 22,
-    'all 22 foreign keys are defined');
+     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 23,
+    'all 23 foreign keys are defined');
 
 SELECT pg_temp.assert_true(
     EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_measurements_network_time'),
@@ -223,7 +201,8 @@ SELECT pg_temp.assert_rejected(
     $$UPDATE users SET phone = '300 123 4567' WHERE username = 'casa.prueba'$$,
     'phone must be in international format');
 SELECT pg_temp.assert_true(
-    EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_users_email_lower'), 'email lookup ignores case');
+    EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'uq_users_email_lower'),
+    'email lookup ignores case (unique index since V28)');
 INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
 SELECT id, repeat('ef', 32), NOW() + INTERVAL '30 minutes' FROM users WHERE username = 'casa.prueba';
 SELECT pg_temp.assert_rejected(
