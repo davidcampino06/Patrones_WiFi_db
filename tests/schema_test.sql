@@ -9,13 +9,13 @@ SELECT pg_temp.assert_true(
         'traffic_sessions', 'protocol_statistics', 'alerts', 'analysis_results', 'ai_predictions',
         'home_networks', 'connection_tests', 'agent_keys', 'agent_reports', 'agent_devices', 'password_reset_tokens',
         'agent_pairing_codes', 'alert_preferences', 'agent_alerts', 'refresh_tokens', 'network_sensors',
-        'network_sensor_pairing_codes')) = 24,
-    'all 24 tables exist');
+        'network_sensor_pairing_codes', 'network_sensor_reports', 'network_sensor_devices')) = 26,
+    'all 26 tables exist');
 
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.table_constraints
-     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 25,
-    'all 25 foreign keys are defined');
+     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 27,
+    'all 27 foreign keys are defined');
 
 SELECT pg_temp.assert_true(
     EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_measurements_network_time'),
