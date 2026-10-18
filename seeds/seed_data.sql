@@ -19,8 +19,9 @@ FROM (VALUES
 ) AS z(location_name, name, floor)
 JOIN locations l ON l.name = z.location_name;
 
-INSERT INTO networks (zone_id, ssid, bssid, frequency_band, channel, security_type, status)
-SELECT z.id, n.ssid, n.bssid, n.band, n.channel, n.security, n.status
+-- Explicitly simulated: since V34 a new network defaults to its sensor (AGENT).
+INSERT INTO networks (zone_id, ssid, bssid, frequency_band, channel, security_type, status, data_source_type)
+SELECT z.id, n.ssid, n.bssid, n.band, n.channel, n.security, n.status, 'SIMULATION'
 FROM (VALUES
     ('Library',              'WiFiSense-Library',  'A4:2B:B0:10:00:01', '5GHz',   36, 'WPA3',            'NORMAL'),
     ('Engineering Building', 'WiFiSense-Labs',     'A4:2B:B0:10:00:02', '5GHz',   44, 'WPA2_ENTERPRISE', 'NORMAL'),
