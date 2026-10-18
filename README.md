@@ -6,9 +6,10 @@ backend se conecta a esta base de datos.
 ## Contenido
 
 ```text
-migrations/   V1…V33 en formato Flyway (V<n>__<descripcion>.sql)
-seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios)
+migrations/   V1…V35 en formato Flyway (V<n>__<descripcion>.sql)
+seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios), solo para demostraciones
 security/     rol_aplicacion.sql: rol con permisos mínimos para el backend
+mantenimiento/ revisar_ y borrar_datos_simulados.sql: dejar el panel del equipo sin datos simulados
 tests/        *_test.sql (pruebas), actualizacion_test.sh (actualizar una base con datos),
               revisar_antes_de_aplicar.sql y verificar_*.sql (solo lectura, para Railway)
 docs/         schema.md (diagrama, tablas, decisiones e índices) y seguridad.md
@@ -22,7 +23,7 @@ docker-compose.yml  PostgreSQL 16 + Flyway para desarrollo local
 `users`, `locations`, `zones`, `networks`, `devices`, `measurements`, `traffic_observations`, `traffic_sessions`,
 `protocol_statistics`, `analysis_results`, `ai_predictions`, `alerts`, `home_networks`, `connection_tests`,
 `agent_keys`, `agent_reports`, `agent_devices`, `password_reset_tokens`, `agent_pairing_codes`, `alert_preferences`,
-`agent_alerts` y `refresh_tokens`. Relaciones, restricciones e índices explicados en [docs/schema.md](docs/schema.md).
+`agent_alerts`, `refresh_tokens`, `network_sensors` y `network_sensor_pairing_codes`. Relaciones, restricciones e índices explicados en [docs/schema.md](docs/schema.md).
 
 Cada tabla y cada columna tiene su descripción dentro de la propia base (`COMMENT ON`, V31–V33): en DBeaver se ve
 en la pestaña *Properties* de cada tabla. Una prueba falla si alguien agrega una tabla o columna sin describirla.
@@ -62,6 +63,8 @@ en la pestaña *Properties* de cada tabla. Una prueba falla si alguien agrega un
 | V29 | Reglas que antes solo validaba el backend: nombres no vacíos en sedes y zonas, piso entre -10 y 200, JSON siempre como objeto |
 | V30 | `refresh_tokens`: sesión que se renueva sola, con rotación y revocación de toda la familia si un token se reutiliza |
 | V31–V33 | Diccionario de datos: descripción de las 22 tablas y de todas sus columnas |
+| V34 | Fuente `AGENT`: las redes del equipo se miden con su sensor (es la fuente por defecto); la fuente de cada medición debe ser una conocida |
+| V35 | `network_sensors` y `network_sensor_pairing_codes`: el sensor de cada red del equipo (el agente WiFiSense instalado en esa red) y su código de 8 caracteres; solo se guarda el SHA-256 de la clave y del código |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
@@ -90,7 +93,17 @@ bash apply.sh --seed --security --test  # además, el rol de la aplicación (nec
 1. Ejecuta `tests/revisar_antes_de_aplicar.sql`: no cambia nada y cada fila debe decir `OK`. Si alguna dice
    `REVISAR`, corrige esos datos primero (por ejemplo, dos cuentas `Carlos` y `carlos`).
 2. Ejecuta las migraciones nuevas, una por una y en orden.
-3. Ejecuta `tests/verificar_base_terminada.sql` (y los `verificar_*.sql` anteriores): todas las filas en `OK`.
+3. Ejecuta `tests/verificar_base_terminada.sql`, `tests/verificar_sensor.sql` (y los `verificar_*.sql`
+   anteriores): todas las filas en `OK`.
+
+### Dejar el panel del equipo sin datos simulados
+
+1. `mantenimiento/revisar_datos_simulados.sql` (no cambia nada): qué redes, mediciones y sedes de demostración se
+   borrarán y qué se queda (cuentas, redes de Mi Wi-Fi y redes reales del equipo).
+2. `mantenimiento/borrar_datos_simulados.sql`: lo borra todo en una sola transacción y muestra lo que queda.
+
+Las redes simuladas se borran con todo lo que depende de ellas (equipos, mediciones, tráfico, análisis, alertas).
+Nunca toca cuentas, redes de Mi Wi-Fi, sus agentes ni sus reportes.
 
 `DATABASE_URL` aquí usa el formato de `psql`. El backend usa el mismo servidor con formato JDBC
 (`jdbc:postgresql://...`).
@@ -101,7 +114,8 @@ bash apply.sh --seed --security --test  # además, el rol de la aplicación (nec
 - 2 sedes, 4 zonas, 4 redes. `WiFiSense-Guest` (2.4 GHz, abierta) tiene métricas degradadas a propósito para que
   el análisis encuentre algo.
 - 96 mediciones por red (24 h cada 15 min), tráfico, protocolos, 7 dispositivos y sesiones.
-- **Todas las mediciones son simuladas** y lo indican con `source = 'SIMULATION'`.
+- **Todas las redes y mediciones son simuladas** y lo indican (`data_source_type` y `source` = `'SIMULATION'`). Son
+  solo para demostraciones locales; en Railway se borran con `mantenimiento/borrar_datos_simulados.sql`.
 
 ## Seguridad
 
@@ -117,21 +131,24 @@ SHA-256, y de los equipos del usuario nunca se guarda la MAC.
 
 | Archivo | Qué comprueba |
 |---|---|
-| `schema_test.sql` | Las 22 tablas y 23 claves foráneas, que las restricciones rechazan datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta resuelta sin fecha…) y que los datos semilla son coherentes |
+| `schema_test.sql` | Las 24 tablas y 25 claves foráneas, que las restricciones rechazan datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta resuelta sin fecha…) y que los datos semilla son coherentes |
 | `optimizacion_test.sql` | Que ninguna clave foránea quede sin índice y que la limpieza por fecha y las consultas frecuentes usen su índice (con `EXPLAIN`) |
 | `integridad_test.sql` | Cuentas únicas sin importar mayúsculas, correos normalizados, nombres no vacíos, JSON como objeto y refresh tokens |
 | `diccionario_test.sql` | Que todas las tablas y columnas tengan descripción |
 | `rol_aplicacion_test.sql` | Que el rol de la aplicación trabaje con los datos pero no pueda cambiar el esquema |
+| `sensor_test.sql` | La fuente `AGENT`, un sensor y un código vigente por red, claves y códigos solo como SHA-256 y que todo se borre con la red |
 
 `tests/actualizacion_test.sh` crea una base como la de producción (hasta V25, con datos que incluyen los casos
 difíciles), aplica las migraciones nuevas y comprueba que no se pierda ninguna fila; también comprueba que V28 se
-detenga sin cambiar nada si hay cuentas repetidas.
+detenga sin cambiar nada si hay cuentas repetidas. Además reproduce la producción de hoy (hasta V33, con el rol de la
+aplicación): aplica V34–V35, comprueba que `wifisense_app` ya puede usar las tablas nuevas sin permisos extra y que la
+limpieza borra todo lo simulado sin tocar cuentas, redes de Mi Wi-Fi ni redes reales.
 
 **GitHub Actions** (`.github/workflows/base-de-datos.yml`) corre en cada Pull Request, sobre PostgreSQL 16: todas
-las migraciones desde cero, los datos semilla, el rol, todas las pruebas, las verificaciones de solo lectura, la
+las migraciones desde cero, los datos semilla, el rol, todas las pruebas, la limpieza de datos simulados, las verificaciones de solo lectura, la
 actualización sobre una base con datos y Flyway aplicando los mismos archivos.
 
 `tests/verificar_agente.sql` comprueba, sin modificar nada, que una base existente (por ejemplo la de Railway) ya
 tiene V17–V19, `tests/verificar_recuperacion.sql` lo mismo para V20–V22, `tests/verificar_alertas.sql` para V23–V24, `tests/verificar_identificacion.sql` para V25 y
-`tests/verificar_base_terminada.sql` para V26–V33: cada fila debe decir `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
+`tests/verificar_base_terminada.sql` para V26–V33 y `tests/verificar_sensor.sql` para V34–V35 y la limpieza: cada fila debe decir `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
 DBeaver las claves, los reportes, las vulnerabilidades y los equipos que envía el agente.
