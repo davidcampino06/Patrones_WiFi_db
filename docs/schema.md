@@ -25,6 +25,8 @@ erDiagram
     networks ||--o{ ai_predictions : about
     networks ||--o{ alerts : raises
     analysis_results ||--o{ alerts : triggers
+    networks ||--o| network_sensors : measured_by
+    networks ||--o| network_sensor_pairing_codes : pairs_with
 ```
 
 ## Tablas
@@ -34,9 +36,9 @@ erDiagram
 | `users` | Cuentas y rol | `username`, `email` únicos sin importar mayúsculas y correo guardado en minúsculas (V28) · `role` ∈ ADMIN/ANALYST/VIEWER/USER · `password_hash` BCrypt · `phone` opcional en formato internacional (V20) · `password_changed_at`: las sesiones emitidas antes dejan de valer (V20) |
 | `locations` | Sedes | `name` único · nombre, dirección y ciudad no vacíos (V29) |
 | `zones` | Áreas de una sede | FK `location_id` (CASCADE) · único (`location_id`, `name`) · nombre no vacío, piso entre -10 y 200 (V29) |
-| `networks` | Redes Wi-Fi | FK `zone_id` (RESTRICT) · `bssid` único con formato MAC · banda, canal, seguridad, estado y fuente con CHECK |
+| `networks` | Redes Wi-Fi del equipo | FK `zone_id` (RESTRICT) · `bssid` único con formato MAC · banda, canal, seguridad, estado y fuente con CHECK · la fuente por defecto es `AGENT`, su sensor (V34) |
 | `devices` | Clientes y AP | FK `network_id` (CASCADE) · `mac_address` único con formato MAC · señal entre -100 y 0 dBm |
-| `measurements` | Rendimiento por lectura | FK `network_id` · latencia/jitter ≥ 0 · pérdida 0–100 · `bandwidth`, `signal`, `connected_devices` opcionales porque no toda fuente los mide · `source` indica si es SIMULATION |
+| `measurements` | Rendimiento por lectura | FK `network_id` · latencia/jitter ≥ 0 · pérdida 0–100 · `bandwidth`, `signal`, `connected_devices` opcionales porque no toda fuente los mide · `source` es una fuente conocida (V34): `AGENT` si la tomó el sensor, `SIMULATION` si es simulada |
 | `traffic_observations` | Volumen y paquetes por lectura | FK `network_id` · valores ≥ 0 · `observed_at` coincide con `measured_at` de la medición |
 | `traffic_sessions` | Sesiones por dispositivo | FK `device_id` · puerto 0–65535 · `ended_at ≥ started_at` |
 | `protocol_statistics` | Paquetes por protocolo y periodo | único (`network_id`, `protocol`, `period_start`) · `period_end ≥ period_start` |
@@ -49,6 +51,8 @@ erDiagram
 | `agent_reports` | Reportes del agente con el veredicto de la IA | FK `home_network_id` (CASCADE) · seguridad del Wi-Fi ∈ OPEN/WEP/WPA/WPA2/WPA3/UNKNOWN · señal −100–0 dBm · `new_device_count` ≤ `device_count` · `security_score`/`security_grade` juntos o NULL · causa de anomalía como en V15 · `details` JSONB (puertos, hallazgos, calidad y canal recomendado) |
 | `password_reset_tokens` | Enlaces para restablecer la contraseña (V21) | FK `user_id` (CASCADE) · `token_hash` SHA-256 único (el enlace nunca se guarda) · `expires_at` > `created_at` · `used_at`: un enlace sirve una sola vez |
 | `refresh_tokens` | Sesiones que se renuevan solas (V30) | FK `user_id` (CASCADE) · `token_hash` SHA-256 único · `family_id`: todos los tokens de un mismo inicio de sesión · `used_at` (rotación) y `revoked_at` · `expires_at` > `created_at` |
+| `network_sensors` | Sensor de cada red del equipo (V35): el agente WiFiSense instalado en esa red | FK `network_id` (CASCADE), uno por red · `key_hash` SHA-256 único · `key_prefix` con formato `wsa_…` · `last_seen_at`, `agent_version` y `platform` del último reporte |
+| `network_sensor_pairing_codes` | Código de 8 caracteres para instalar el sensor (V35) | FK `network_id` (CASCADE), uno vigente por red · `code_hash` SHA-256 único · vence como máximo una hora después |
 | `agent_pairing_codes` | Código corto para instalar el agente (V22) | FK `home_network_id` (CASCADE) única: un código pendiente por red · `code_hash` SHA-256 · vence como máximo en 1 hora |
 | `alert_preferences` | Qué avisos por correo quiere cada usuario (V24) | PK/FK `user_id` (CASCADE) · tres interruptores, todos encendidos por defecto |
 | `agent_alerts` | Historial de avisos de cada red y antirrepetición del correo (V24) | FK `home_network_id` (CASCADE) · `type` ∈ NEW_DEVICE/UNAUTHORIZED_DEVICE/SECURITY/ANOMALY · `emailed` si ya se envió |
@@ -72,6 +76,10 @@ erDiagram
   usado vuelve a aparecer, alguien lo copió y se revoca la familia entera.
 - **Mínimos privilegios**: el backend usa `wifisense_app`, que no puede cambiar el esquema (ver `seguridad.md`).
 - **Diccionario en la base (V31–V33)**: cada tabla y columna tiene `COMMENT ON`; DBeaver lo muestra.
+- **Sensor para las redes del equipo (V34–V35)**: el backend vive en Railway y no ve la red del equipo, así que la
+  mide el mismo agente de Mi Wi-Fi instalado en un computador de esa red. Tablas propias en vez de reutilizar
+  `agent_keys`: una clave de agente pertenece a la red de un usuario y una clave de sensor a una red del equipo, y
+  así ninguna consulta de un lado puede tocar los datos del otro.
 
 ## Índices
 
@@ -96,6 +104,7 @@ erDiagram
 | `idx_measurements_measured_at`, `idx_traffic_observations_observed_at`, `idx_traffic_sessions_started_at`, `idx_protocol_statistics_period_start`, `idx_analysis_results_created_at`, `idx_agent_alerts_created_at`, `idx_agent_pairing_codes_expires_at` (V27) | Limpieza nocturna por fecha de todas las redes a la vez (los índices por red no sirven para "todo lo anterior a esta fecha") |
 | `idx_alerts_resolved_at` (V27, parcial `WHERE status = 'RESOLVED'`) | Borrar solo alertas resueltas antiguas; las abiertas nunca se borran |
 | `idx_refresh_tokens_user`, `idx_refresh_tokens_family`, `idx_refresh_tokens_expires_at` (V30) | Cerrar todas las sesiones de una cuenta, revocar una familia robada y borrar las vencidas |
+| `idx_network_sensor_pairing_codes_expires_at` (V35) | Borrar cada hora los códigos vencidos del sensor; las búsquedas por red y por hash usan sus restricciones únicas |
 
 `tests/optimizacion_test.sql` comprueba con `EXPLAIN` que cada consulta de esta tabla puede usar su índice y que no
 queda ninguna clave foránea sin índice.

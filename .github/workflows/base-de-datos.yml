@@ -39,6 +39,11 @@ jobs:
           psql "$ADMIN_URL" -q -c "CREATE DATABASE wifisense"
           bash apply.sh --seed --security --test
 
+      - name: Borrar los datos simulados, como se hace en Railway (deja el panel del equipo vacío)
+        run: |
+          psql "$DATABASE_URL" -At -v ON_ERROR_STOP=1 -f mantenimiento/revisar_datos_simulados.sql
+          psql "$DATABASE_URL" -At -v ON_ERROR_STOP=1 -f mantenimiento/borrar_datos_simulados.sql
+
       - name: Verificaciones de solo lectura (todas deben decir OK)
         run: |
           status=0
