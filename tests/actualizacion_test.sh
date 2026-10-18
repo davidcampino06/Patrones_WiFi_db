@@ -7,7 +7,7 @@
 set -euo pipefail
 : "${ADMIN_URL:?Set ADMIN_URL to a user that can create databases, e.g. postgresql://postgres:secret@localhost:5432/postgres}"
 DEPLOYED=${DEPLOYED:-25}
-CURRENT=${CURRENT:-33}
+CURRENT=${CURRENT:-35}
 cd "$(dirname "$0")/.."
 
 version() { basename "$1" | sed -E 's/^V([0-9]+)__.*/\1/'; }
@@ -72,6 +72,12 @@ INSERT INTO network_sensors (network_id, key_hash, key_prefix) SELECT id, repeat
 UPDATE network_sensors SET last_seen_at = NOW(), agent_version = '1.4.0' WHERE key_prefix = 'wsa_Rol1';
 INSERT INTO network_sensor_pairing_codes (network_id, code_hash, expires_at)
 SELECT id, repeat('cd', 32), NOW() + INTERVAL '15 minutes' FROM networks LIMIT 1;
+INSERT INTO network_sensor_reports (network_id, agent_version, device_count, security_score, security_grade)
+SELECT id, '1.5.0', 3, 80, 'ACCEPTABLE' FROM networks LIMIT 1;
+INSERT INTO network_sensor_devices (network_id, fingerprint) SELECT id, repeat('ab', 12) FROM networks LIMIT 1;
+UPDATE network_sensor_devices SET authorized = FALSE, label = 'Equipo raro', last_seen_at = NOW();
+DELETE FROM network_sensor_devices;
+DELETE FROM network_sensor_reports;
 DELETE FROM network_sensor_pairing_codes;
 DELETE FROM network_sensors;
 ROLLBACK;
