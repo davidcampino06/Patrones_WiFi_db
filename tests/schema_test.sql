@@ -8,13 +8,14 @@ SELECT pg_temp.assert_true(
         'users', 'locations', 'zones', 'networks', 'devices', 'measurements', 'traffic_observations',
         'traffic_sessions', 'protocol_statistics', 'alerts', 'analysis_results', 'ai_predictions',
         'home_networks', 'connection_tests', 'agent_keys', 'agent_reports', 'agent_devices', 'password_reset_tokens',
-        'agent_pairing_codes', 'alert_preferences', 'agent_alerts', 'refresh_tokens')) = 22,
-    'all 22 tables exist');
+        'agent_pairing_codes', 'alert_preferences', 'agent_alerts', 'refresh_tokens', 'network_sensors',
+        'network_sensor_pairing_codes')) = 24,
+    'all 24 tables exist');
 
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.table_constraints
-     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 23,
-    'all 23 foreign keys are defined');
+     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 25,
+    'all 25 foreign keys are defined');
 
 SELECT pg_temp.assert_true(
     EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_measurements_network_time'),
@@ -283,3 +284,6 @@ SELECT pg_temp.assert_true(
     (SELECT count(DISTINCT network_id) FROM measurements) = 4, 'every network has measurement history');
 SELECT pg_temp.assert_true(
     NOT EXISTS (SELECT 1 FROM measurements WHERE source <> 'SIMULATION'), 'seed measurements are marked as simulated');
+SELECT pg_temp.assert_true(
+    NOT EXISTS (SELECT 1 FROM networks WHERE data_source_type <> 'SIMULATION'),
+    'seed networks are marked as simulated, so the cleanup of Railway finds them');
