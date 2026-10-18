@@ -1,5 +1,5 @@
--- Run BEFORE applying V26-V33 on a database that already has data (Railway, from DBeaver). It changes nothing.
--- Every row must say OK. If one says REVISAR, fix that data first: the migration would stop at that point
+-- Run BEFORE applying new migrations (V26 onwards) on a database that already has data (Railway, from DBeaver).
+-- It changes nothing. Every row must say OK. If one says REVISAR, fix that data first: the migration would stop at that point
 -- (V28 and V29 refuse data that breaks their rules instead of changing it silently).
 SELECT 'Usuarios repetidos sin importar mayúsculas (V28)' AS revision,
        coalesce('REVISAR: ' || (SELECT string_agg(name, ', ') FROM (
@@ -31,4 +31,9 @@ SELECT 'Pruebas de conexión con detalle que no es un objeto JSON (V29)',
                 || ' pruebas', 'OK')
 UNION ALL
 SELECT 'Avisos del agente sin texto (V29)',
-       coalesce('REVISAR: ' || (SELECT NULLIF(count(*), 0)::text FROM agent_alerts WHERE btrim(detail) = '') || ' avisos', 'OK');
+       coalesce('REVISAR: ' || (SELECT NULLIF(count(*), 0)::text FROM agent_alerts WHERE btrim(detail) = '') || ' avisos', 'OK')
+UNION ALL
+SELECT 'Mediciones con una fuente desconocida (V34)',
+       coalesce('REVISAR: ' || (SELECT string_agg(DISTINCT source, ', ') FROM measurements
+                                WHERE source NOT IN ('AGENT', 'SIMULATION', 'ROUTER_API', 'SNMP', 'SYSTEM', 'TRAFFIC_CAPTURE')),
+                'OK');
