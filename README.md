@@ -6,7 +6,7 @@ backend se conecta a esta base de datos.
 ## Contenido
 
 ```text
-migrations/   V1…V37 en formato Flyway (V<n>__<descripcion>.sql)
+migrations/   V1…V38 en formato Flyway (V<n>__<descripcion>.sql)
 seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios), solo para demostraciones
 security/     rol_aplicacion.sql: rol con permisos mínimos para el backend
 mantenimiento/ revisar_ y borrar_datos_simulados.sql: dejar el panel del equipo sin datos simulados
@@ -24,7 +24,7 @@ docker-compose.yml  PostgreSQL 16 + Flyway para desarrollo local
 `protocol_statistics`, `analysis_results`, `ai_predictions`, `alerts`, `home_networks`, `connection_tests`,
 `agent_keys`, `agent_reports`, `agent_devices`, `password_reset_tokens`, `agent_pairing_codes`, `alert_preferences`,
 `agent_alerts`, `refresh_tokens`, `network_sensors`, `network_sensor_pairing_codes`, `network_sensor_reports`,
-`network_sensor_devices`, `agent_device_sessions` y `network_sensor_device_sessions`. Relaciones, restricciones e índices explicados en [docs/schema.md](docs/schema.md).
+`network_sensor_devices`, `agent_device_sessions`, `network_sensor_device_sessions` y `ai_model_versions`. Relaciones, restricciones e índices explicados en [docs/schema.md](docs/schema.md).
 
 Cada tabla y cada columna tiene su descripción dentro de la propia base (`COMMENT ON`, V31–V33): en DBeaver se ve
 en la pestaña *Properties* de cada tabla. Una prueba falla si alguien agrega una tabla o columna sin describirla.
@@ -68,6 +68,7 @@ en la pestaña *Properties* de cada tabla. Una prueba falla si alguien agrega un
 | V35 | `network_sensors` y `network_sensor_pairing_codes`: el sensor de cada red del equipo (el agente WiFiSense instalado en esa red) y su código de 8 caracteres; solo se guarda el SHA-256 de la clave y del código |
 | V36 | `network_sensor_reports` y `network_sensor_devices`: lo que ve el sensor de cada red del equipo, como Mi Wi-Fi: cada reporte con la auditoría de seguridad, la calidad y el mejor canal, y los equipos conectados (solo la huella con sal de la MAC, fabricante, nombre, si usa dirección privada y si un administrador lo marcó como no autorizado) |
 | V37 | `agent_device_sessions` y `network_sensor_device_sessions`: cada periodo en que un equipo estuvo conectado (de Mi Wi-Fi o de una red del equipo), con un solo periodo abierto por equipo; se borran con el equipo |
+| V38 | Identificar equipos: `kind` (celular, computador, televisor, impresora, cámara, parlante, consola o IoT), `role` (el computador del agente o el router) y `model` en los equipos; `identify_until` en el agente y el sensor (reportar cada minuto mientras se identifica un equipo). `ai_model_versions`: cada entrenamiento de la IA con mediciones reales, sus métricas, si reemplazó al modelo en uso (uno solo activo) y los datos para reconstruirlo |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
@@ -134,7 +135,7 @@ SHA-256, y de los equipos del usuario nunca se guarda la MAC.
 
 | Archivo | Qué comprueba |
 |---|---|
-| `schema_test.sql` | Las 28 tablas y 29 claves foráneas, que las restricciones rechazan datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta resuelta sin fecha…) y que los datos semilla son coherentes |
+| `schema_test.sql` | Las 29 tablas y 30 claves foráneas, que las restricciones rechazan datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta resuelta sin fecha…) y que los datos semilla son coherentes |
 | `optimizacion_test.sql` | Que ninguna clave foránea quede sin índice y que la limpieza por fecha y las consultas frecuentes usen su índice (con `EXPLAIN`) |
 | `integridad_test.sql` | Cuentas únicas sin importar mayúsculas, correos normalizados, nombres no vacíos, JSON como objeto y refresh tokens |
 | `diccionario_test.sql` | Que todas las tablas y columnas tengan descripción |
@@ -142,11 +143,12 @@ SHA-256, y de los equipos del usuario nunca se guarda la MAC.
 | `sensor_test.sql` | La fuente `AGENT`, un sensor y un código vigente por red, claves y códigos solo como SHA-256 y que todo se borre con la red |
 | `sensor_reportes_test.sql` | Reportes y equipos del sensor (V36): JSON como objeto, equipos nunca con la MAC, nombres no vacíos y que todo se borre con la red |
 | `sesiones_test.sql` | Historial de conexiones (V37): un solo periodo abierto por equipo, fechas coherentes y que se borre con el equipo o la red |
+| `identidad_modelo_test.sql` | Tipo, rol y modelo de los equipos con valores conocidos (V38) y versiones del modelo: una sola activa, nunca una rechazada, periodo en orden y que el historial quede aunque se borre la cuenta |
 
 `tests/actualizacion_test.sh` crea una base como la de producción (hasta V25, con datos que incluyen los casos
 difíciles), aplica las migraciones nuevas y comprueba que no se pierda ninguna fila; también comprueba que V28 se
-detenga sin cambiar nada si hay cuentas repetidas. Además reproduce la producción de hoy (hasta V36, con el rol de la
-aplicación): aplica V37, comprueba que `wifisense_app` ya puede usar las tablas nuevas sin permisos extra y que la
+detenga sin cambiar nada si hay cuentas repetidas. Además reproduce la producción de hoy (hasta V37, con el rol de la
+aplicación): aplica V38, comprueba que `wifisense_app` ya puede usar las tablas nuevas sin permisos extra y que la
 limpieza borra todo lo simulado sin tocar cuentas, redes de Mi Wi-Fi ni redes reales.
 
 **GitHub Actions** (`.github/workflows/base-de-datos.yml`) corre en cada Pull Request, sobre PostgreSQL 16: todas
@@ -155,5 +157,5 @@ actualización sobre una base con datos y Flyway aplicando los mismos archivos.
 
 `tests/verificar_agente.sql` comprueba, sin modificar nada, que una base existente (por ejemplo la de Railway) ya
 tiene V17–V19, `tests/verificar_recuperacion.sql` lo mismo para V20–V22, `tests/verificar_alertas.sql` para V23–V24, `tests/verificar_identificacion.sql` para V25 y
-`tests/verificar_base_terminada.sql` para V26–V33 y `tests/verificar_sensor.sql` para V34–V35 y la limpieza, `tests/verificar_sensor_reportes.sql` para V36, `tests/verificar_sesiones.sql` para V37: cada fila debe decir `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
+`tests/verificar_base_terminada.sql` para V26–V33 y `tests/verificar_sensor.sql` para V34–V35 y la limpieza, `tests/verificar_sensor_reportes.sql` para V36, `tests/verificar_sesiones.sql` para V37, `tests/verificar_identidad_modelo.sql` para V38: cada fila debe decir `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
 DBeaver las claves, los reportes, las vulnerabilidades y los equipos que envía el agente.
