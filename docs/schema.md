@@ -29,6 +29,8 @@ erDiagram
     networks ||--o| network_sensor_pairing_codes : pairs_with
     networks ||--o{ network_sensor_reports : reported_by
     networks ||--o{ network_sensor_devices : sees
+    agent_devices ||--o{ agent_device_sessions : connected_during
+    network_sensor_devices ||--o{ network_sensor_device_sessions : connected_during
 ```
 
 ## Tablas
@@ -57,6 +59,8 @@ erDiagram
 | `network_sensor_pairing_codes` | Código de 8 caracteres para instalar el sensor (V35) | FK `network_id` (CASCADE), uno vigente por red · `code_hash` SHA-256 único · vence como máximo una hora después |
 | `network_sensor_reports` | Reportes del sensor de cada red del equipo con el veredicto de la IA (V36) | FK `network_id` (CASCADE) · mismas reglas que `agent_reports`: seguridad del Wi-Fi conocida, señal −100–0 dBm, `new_device_count` ≤ `device_count`, puntaje y grado de seguridad juntos · `details` JSONB objeto (puertos, hallazgos, calidad y mejor canal) |
 | `network_sensor_devices` | Equipos que ve el sensor en cada red del equipo (V36) | PK (`network_id`, `fingerprint`) · huella SHA-256 de 24 hex, nunca la MAC · `label`, `vendor`, `hostname` no vacíos · `authorized` FALSE = un administrador lo marcó como no autorizado · `private_mac` · `first_seen_at` ≤ `last_seen_at` |
+| `agent_device_sessions` | Periodos en que cada equipo de Mi Wi-Fi estuvo conectado (V37) | FK (`home_network_id`, `fingerprint`) → `agent_devices` (CASCADE) · un solo periodo abierto por equipo (índice único parcial `WHERE disconnected_at IS NULL`) · `connected_at` ≤ `last_seen_at` ≤ `disconnected_at` |
+| `network_sensor_device_sessions` | Lo mismo para los equipos que ve el sensor de una red del equipo (V37) | FK (`network_id`, `fingerprint`) → `network_sensor_devices` (CASCADE) · mismas reglas |
 | `agent_pairing_codes` | Código corto para instalar el agente (V22) | FK `home_network_id` (CASCADE) única: un código pendiente por red · `code_hash` SHA-256 · vence como máximo en 1 hora |
 | `alert_preferences` | Qué avisos por correo quiere cada usuario (V24) | PK/FK `user_id` (CASCADE) · tres interruptores, todos encendidos por defecto |
 | `agent_alerts` | Historial de avisos de cada red y antirrepetición del correo (V24) | FK `home_network_id` (CASCADE) · `type` ∈ NEW_DEVICE/UNAUTHORIZED_DEVICE/SECURITY/ANOMALY · `emailed` si ya se envió |
@@ -110,6 +114,8 @@ erDiagram
 | `idx_refresh_tokens_user`, `idx_refresh_tokens_family`, `idx_refresh_tokens_expires_at` (V30) | Cerrar todas las sesiones de una cuenta, revocar una familia robada y borrar las vencidas |
 | `idx_network_sensor_pairing_codes_expires_at` (V35) | Borrar cada hora los códigos vencidos del sensor; las búsquedas por red y por hash usan sus restricciones únicas |
 | `idx_network_sensor_reports_network_time`, `idx_network_sensor_reports_received`, `idx_network_sensor_devices_last_seen` (V36) | Últimos reportes del sensor de una red para el panel, y limpieza nocturna por fecha de reportes y equipos |
+| `uq_agent_device_sessions_open`, `uq_network_sensor_device_sessions_open` (V37, únicos parciales) | Un solo periodo abierto por equipo; es también la búsqueda de cada reporte («¿este equipo ya estaba conectado?») |
+| `idx_agent_device_sessions_device`, `idx_network_sensor_device_sessions_device`, `..._last_seen` (V37) | Historial de un equipo, del más reciente al más viejo, y limpieza nocturna |
 
 `tests/optimizacion_test.sql` comprueba con `EXPLAIN` que cada consulta de esta tabla puede usar su índice y que no
 queda ninguna clave foránea sin índice.
