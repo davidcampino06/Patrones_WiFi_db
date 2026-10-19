@@ -7,7 +7,7 @@
 set -euo pipefail
 : "${ADMIN_URL:?Set ADMIN_URL to a user that can create databases, e.g. postgresql://postgres:secret@localhost:5432/postgres}"
 DEPLOYED=${DEPLOYED:-25}
-CURRENT=${CURRENT:-36}
+CURRENT=${CURRENT:-37}
 cd "$(dirname "$0")/.."
 
 version() { basename "$1" | sed -E 's/^V([0-9]+)__.*/\1/'; }
@@ -80,6 +80,12 @@ INSERT INTO network_sensor_device_sessions (network_id, fingerprint, connected_a
 SELECT network_id, fingerprint, NOW(), NOW() FROM network_sensor_devices;
 UPDATE network_sensor_device_sessions SET disconnected_at = last_seen_at;
 DELETE FROM network_sensor_device_sessions;
+UPDATE network_sensor_devices SET kind = 'PHONE', role = NULL, model = 'Pixel 8';
+UPDATE network_sensors SET identify_until = NOW() + INTERVAL '10 minutes';
+INSERT INTO ai_model_versions (version, algorithm, samples, networks, data_from, data_to, decision, reason, active,
+                               training_set)
+VALUES ('real-rol', 'IsolationForest', 600, 1, NOW() - INTERVAL '3 days', NOW(), 'PROMOTED', 'Prueba', TRUE, '[]');
+UPDATE ai_model_versions SET active = FALSE;
 DELETE FROM network_sensor_devices;
 DELETE FROM network_sensor_reports;
 DELETE FROM network_sensor_pairing_codes;
