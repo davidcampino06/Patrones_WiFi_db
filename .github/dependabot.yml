@@ -1,0 +1,9 @@
+# Dependabot avisa con un Pull Request cuando una acción de GitHub que usa el workflow tiene una versión nueva (por
+# ejemplo por un arreglo de seguridad). Una vez al mes y como mucho 2 a la vez, para no llenar el repositorio.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
