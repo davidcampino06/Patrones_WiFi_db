@@ -32,7 +32,7 @@ jobs:
       ADMIN_URL: postgresql://postgres:solo-para-ci@localhost:5432/postgres
       DATABASE_URL: postgresql://postgres:solo-para-ci@localhost:5432/wifisense
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Migraciones, datos semilla, rol de la aplicación y pruebas
         run: |
