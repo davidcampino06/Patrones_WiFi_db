@@ -12,7 +12,7 @@ security/     rol_aplicacion.sql: rol con permisos mínimos para el backend
 mantenimiento/ revisar_ y borrar_datos_simulados.sql: dejar el panel del equipo sin datos simulados
 tests/        *_test.sql (pruebas), actualizacion_test.sh (actualizar una base con datos),
               revisar_antes_de_aplicar.sql y verificar_*.sql (solo lectura, para Railway)
-docs/         schema.md (diagrama, tablas, decisiones e índices) y seguridad.md
+docs/         schema.md (diagrama, tablas, decisiones e índices), seguridad.md y respaldo.md (copias de seguridad)
 apply.sh      aplica migraciones con psql (alternativa a Flyway)
 .github/      pruebas automáticas en cada Pull Request (GitHub Actions)
 docker-compose.yml  PostgreSQL 16 + Flyway para desarrollo local
@@ -127,7 +127,8 @@ El backend debería conectarse con el rol `wifisense_app` (`security/rol_aplicac
 datos, pero no crear, cambiar ni borrar tablas, ni vaciar una tabla de golpe; una consulta que pase de 30 s se
 corta. Las migraciones siguen corriendo con el dueño de la base. Paso a paso en [docs/seguridad.md](docs/seguridad.md).
 Los tokens (enlaces de recuperación, códigos del agente, claves del agente y refresh tokens) se guardan solo como
-SHA-256, y de los equipos del usuario nunca se guarda la MAC.
+SHA-256, y de los equipos del usuario nunca se guarda la MAC. Antes de cada migración en Railway haz una copia de
+seguridad: [docs/respaldo.md](docs/respaldo.md).
 
 ## Pruebas
 
@@ -143,6 +144,7 @@ SHA-256, y de los equipos del usuario nunca se guarda la MAC.
 | `sensor_test.sql` | La fuente `AGENT`, un sensor y un código vigente por red, claves y códigos solo como SHA-256 y que todo se borre con la red |
 | `sensor_reportes_test.sql` | Reportes y equipos del sensor (V36): JSON como objeto, equipos nunca con la MAC, nombres no vacíos y que todo se borre con la red |
 | `sesiones_test.sql` | Historial de conexiones (V37): un solo periodo abierto por equipo, fechas coherentes y que se borre con el equipo o la red |
+| `carga_test.sql` | Un mes de uso real de tres redes (78 000 mediciones, 39 000 de tráfico, 600 equipos y 15 000 periodos de conexión): las consultas más usadas del backend usan su índice y responden en tiempo (últimas 50 mediciones < 50 ms, semana por día < 300 ms, datos de entrenamiento de la IA < 2 s); en local tardan 0,2 ms, 4 ms y 26 ms |
 | `identidad_modelo_test.sql` | Tipo, rol y modelo de los equipos con valores conocidos (V38) y versiones del modelo: una sola activa, nunca una rechazada, periodo en orden y que el historial quede aunque se borre la cuenta |
 
 `tests/actualizacion_test.sh` crea una base como la de producción (hasta V25, con datos que incluyen los casos
