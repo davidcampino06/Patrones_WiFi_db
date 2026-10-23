@@ -2,9 +2,12 @@
 
 ## Rol de la aplicación con permisos mínimos
 
-Hoy el backend en Railway se conecta con el dueño de la base (`postgres`), que puede hacer cualquier cosa: crear,
-cambiar o borrar tablas. Si un error del backend o una inyección SQL llegara a ejecutar algo así, el daño sería total.
-`security/rol_aplicacion.sql` crea `wifisense_app`, que solo puede trabajar con los datos:
+Si el backend se conectara con el dueño de la base (`postgres`), podría hacer cualquier cosa: crear, cambiar o borrar
+tablas. Si un error del backend o una inyección SQL llegara a ejecutar algo así, el daño sería total.
+`security/rol_aplicacion.sql` crea `wifisense_app`, que solo puede trabajar con los datos, y el backend debe usar ese
+rol (`DATABASE_USERNAME=wifisense_app`). Para comprobar con qué rol trabaja hoy el de Railway, ejecuta en DBeaver
+`SELECT usename, application_name FROM pg_stat_activity WHERE datname = current_database();` y mira las conexiones
+del backend:
 
 | Puede | No puede |
 |---|---|
@@ -34,6 +37,18 @@ que salió mal. La contraseña **no está en el repositorio**: se escribe a mano
 
 Las migraciones nuevas se siguen ejecutando en DBeaver con el usuario `postgres`; gracias a los privilegios por
 defecto, las tablas que creen quedan disponibles para `wifisense_app` sin repetir el paso 1.
+
+## Quién puede conectarse
+
+| Quién | Cómo llega | Con qué usuario |
+|---|---|---|
+| Backend | Red privada de Railway: `DATABASE_URL` debe apuntar a `postgres.railway.internal`, no a la dirección pública | `wifisense_app` (permisos mínimos) |
+| Migraciones y revisiones (DBeaver) | **Public Access** de Railway, encendido solo mientras se usa y apagado después | `postgres` |
+| Página, servicio de IA y agentes | **Nunca**: no tienen la contraseña ni la dirección; todo pasa por el backend | — |
+
+La contraseña de la base solo está en las variables del backend en Railway (y en la de Postgres que Railway genera);
+nunca en un repositorio, una captura ni un chat. Lo comprueba la búsqueda de secretos de la auditoría
+(`WiFiSense-backend/docs/auditoria_final.md`).
 
 ## Datos que nunca se guardan en claro
 
