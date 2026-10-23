@@ -129,6 +129,7 @@ corta. Las migraciones siguen corriendo con el dueño de la base. Paso a paso en
 Los tokens (enlaces de recuperación, códigos del agente, claves del agente y refresh tokens) se guardan solo como
 SHA-256, y de los equipos del usuario nunca se guarda la MAC. Antes de cada migración en Railway haz una copia de
 seguridad: [docs/respaldo.md](docs/respaldo.md).
+Quién puede conectarse a la base y con qué usuario: [docs/seguridad.md](docs/seguridad.md#quién-puede-conectarse).
 
 ## Pruebas
 
@@ -145,6 +146,7 @@ seguridad: [docs/respaldo.md](docs/respaldo.md).
 | `sensor_reportes_test.sql` | Reportes y equipos del sensor (V36): JSON como objeto, equipos nunca con la MAC, nombres no vacíos y que todo se borre con la red |
 | `sesiones_test.sql` | Historial de conexiones (V37): un solo periodo abierto por equipo, fechas coherentes y que se borre con el equipo o la red |
 | `carga_test.sql` | Un mes de uso real de tres redes (78 000 mediciones, 39 000 de tráfico, 600 equipos y 15 000 periodos de conexión): las consultas más usadas del backend usan su índice y responden en tiempo (últimas 50 mediciones < 50 ms, semana por día < 300 ms, datos de entrenamiento de la IA < 2 s); en local tardan 0,2 ms, 4 ms y 26 ms |
+| `privacidad_test.sql` | Borrar una cuenta borra todo lo suyo (redes, clave y código del agente, reportes, equipos con sus nombres, periodos de conexión, alertas, pruebas de conexión, preferencias, sesiones y enlaces de recuperación) sin tocar los datos del equipo; y ninguna tabla que apunte a una cuenta, red de casa o equipo puede quedarse con sus datos (todas sus llaves foráneas son `CASCADE` o `SET NULL`) |
 | `identidad_modelo_test.sql` | Tipo, rol y modelo de los equipos con valores conocidos (V38) y versiones del modelo: una sola activa, nunca una rechazada, periodo en orden y que el historial quede aunque se borre la cuenta |
 
 `tests/actualizacion_test.sh` crea una base como la de producción (hasta V25, con datos que incluyen los casos
