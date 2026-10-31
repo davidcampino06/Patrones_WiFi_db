@@ -6,7 +6,11 @@ CREATE TABLE traffic_capture_protocols (
     protocol   VARCHAR(12) NOT NULL,
     packets    INTEGER     NOT NULL,
     bytes      BIGINT      NOT NULL,
-    PRIMARY KEY (capture_id, protocol)
+    PRIMARY KEY (capture_id, protocol),
+    CONSTRAINT ck_traffic_capture_protocols_protocol CHECK (protocol IN (
+        'TCP', 'UDP', 'ICMP', 'ICMPV6', 'ARP', 'IGMP', 'DNS', 'MDNS', 'DHCP', 'SSDP', 'NETBIOS', 'LLMNR', 'HTTP',
+        'HTTPS', 'QUIC', 'NTP', 'IPV6_OTHER', 'IPV4_OTHER', 'OTHER')),
+    CONSTRAINT ck_traffic_capture_protocols_counts CHECK (packets > 0 AND bytes >= 0)
 );
 
 -- Top services: at most 20 per capture, chosen by the sensor.
@@ -16,7 +20,10 @@ CREATE TABLE traffic_capture_ports (
     port       INTEGER    NOT NULL,
     packets    INTEGER    NOT NULL,
     bytes      BIGINT     NOT NULL,
-    PRIMARY KEY (capture_id, transport, port)
+    PRIMARY KEY (capture_id, transport, port),
+    CONSTRAINT ck_traffic_capture_ports_transport CHECK (transport IN ('TCP', 'UDP')),
+    CONSTRAINT ck_traffic_capture_ports_port CHECK (port BETWEEN 0 AND 65535),
+    CONSTRAINT ck_traffic_capture_ports_counts CHECK (packets > 0 AND bytes >= 0)
 );
 
 -- Traffic per second of the capture (second 0 is the start). Seconds without traffic are not stored.
