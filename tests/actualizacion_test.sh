@@ -96,6 +96,21 @@ UPDATE wifi_scan_sessions SET status = 'COMPLETED', finished_at = NOW(), network
 DELETE FROM wifi_scan_observations;
 DELETE FROM wifi_access_points;
 DELETE FROM wifi_scan_sessions;
+UPDATE network_sensor_devices SET hostname = 'Portatil-sala', name_source = 'ROUTER';
+INSERT INTO agent_capabilities (network_id, platform, capture_consent, pktmon) SELECT id, 'Windows', TRUE, TRUE FROM networks LIMIT 1;
+UPDATE agent_capabilities SET elevated = TRUE, reported_at = NOW();
+INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
+SELECT id, 'Prueba del rol de la aplicacion', 10, 1000, 1048576 FROM networks LIMIT 1;
+UPDATE traffic_captures SET status = 'COMPLETED', started_at = NOW(), finished_at = NOW(), stop_reason = 'DURATION',
+       packet_count = 10, byte_count = 600;
+INSERT INTO traffic_capture_protocols (capture_id, protocol, packets, bytes) SELECT id, 'DNS', 10, 600 FROM traffic_captures;
+INSERT INTO traffic_capture_ports (capture_id, transport, port, packets, bytes) SELECT id, 'UDP', 53, 10, 600 FROM traffic_captures;
+INSERT INTO traffic_capture_intervals (capture_id, second_offset, packets, bytes) SELECT id, 0, 10, 600 FROM traffic_captures;
+INSERT INTO traffic_capture_findings (capture_id, category, code, severity, title, evidence, source)
+SELECT id, 'OBSERVED', 'DNS_SHARE', 'INFO', 'Solo DNS', '10 de 10 paquetes.', 'RULES' FROM traffic_captures;
+DELETE FROM traffic_captures;
+DELETE FROM agent_capabilities;
+INSERT INTO audit_events (actor_role, action, outcome) VALUES ('SYSTEM', 'RETENTION_PURGED', 'SUCCESS');
 DELETE FROM network_sensor_devices;
 DELETE FROM network_sensor_reports;
 DELETE FROM network_sensor_pairing_codes;
