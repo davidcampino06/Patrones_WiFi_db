@@ -11,13 +11,13 @@ SELECT pg_temp.assert_true(
         'agent_pairing_codes', 'alert_preferences', 'agent_alerts', 'refresh_tokens', 'network_sensors',
         'network_sensor_pairing_codes', 'network_sensor_reports', 'network_sensor_devices', 'agent_device_sessions',
         'network_sensor_device_sessions', 'ai_model_versions', 'wifi_scan_sessions', 'wifi_access_points',
-        'wifi_scan_observations', 'agent_capabilities', 'traffic_captures')) = 34,
-    'all 34 tables exist');
+        'wifi_scan_observations', 'agent_capabilities', 'traffic_captures', 'traffic_capture_protocols')) = 35,
+    'all 35 tables exist');
 
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM information_schema.table_constraints
-     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 39,
-    'all 39 foreign keys are defined');
+     WHERE table_schema = 'public' AND constraint_type = 'FOREIGN KEY') = 40,
+    'all 40 foreign keys are defined');
 
 SELECT pg_temp.assert_true(
     EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_measurements_network_time'),
