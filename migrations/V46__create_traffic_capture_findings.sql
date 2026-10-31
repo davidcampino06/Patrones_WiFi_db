@@ -14,7 +14,11 @@ CREATE TABLE traffic_capture_findings (
     evidence       VARCHAR(400) NOT NULL,
     recommendation VARCHAR(400),
     confidence     NUMERIC(3, 2),
-    source         VARCHAR(6)   NOT NULL
+    source         VARCHAR(6)   NOT NULL,
+    CONSTRAINT ck_traffic_capture_findings_category CHECK (category IN ('OBSERVED', 'INFERRED')),
+    CONSTRAINT ck_traffic_capture_findings_severity CHECK (severity IN ('INFO', 'WARNING', 'CRITICAL')),
+    CONSTRAINT ck_traffic_capture_findings_source CHECK (source IN ('AI', 'RULES')),
+    CONSTRAINT ck_traffic_capture_findings_code CHECK (code ~ '^[A-Z][A-Z0-9_]{2,31}$')
 );
 
 CREATE INDEX idx_traffic_capture_findings_capture ON traffic_capture_findings (capture_id);
