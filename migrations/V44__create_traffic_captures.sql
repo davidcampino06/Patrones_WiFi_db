@@ -56,7 +56,30 @@ CREATE TABLE traffic_captures (
         'DURATION', 'PACKET_LIMIT', 'BYTE_LIMIT', 'CANCELLED')),
     CONSTRAINT ck_traffic_captures_tool CHECK (capture_tool IS NULL OR capture_tool IN (
         'NPCAP', 'PKTMON', 'RAW_SOCKET', 'PACKET_SOCKET')),
-    CONSTRAINT ck_traffic_captures_analyzed CHECK (analyzed_with IS NULL OR analyzed_with IN ('AI', 'RULES'))
+    CONSTRAINT ck_traffic_captures_analyzed CHECK (analyzed_with IS NULL OR analyzed_with IN ('AI', 'RULES')),
+    -- a finished capture has its end time; only a failed one has a failure reason; only a completed one says why it
+    -- stopped and has statistics
+    CONSTRAINT ck_traffic_captures_finished
+        CHECK ((status IN ('COMPLETED', 'FAILED', 'CANCELLED')) = (finished_at IS NOT NULL)),
+    CONSTRAINT ck_traffic_captures_failed CHECK ((status = 'FAILED') = (failure_reason IS NOT NULL)),
+    CONSTRAINT ck_traffic_captures_completed CHECK ((status = 'COMPLETED') = (stop_reason IS NOT NULL)
+        AND (status <> 'COMPLETED' OR (packet_count IS NOT NULL AND byte_count IS NOT NULL))),
+    CONSTRAINT ck_traffic_captures_order CHECK ((started_at IS NULL OR started_at >= requested_at)
+        AND (finished_at IS NULL OR finished_at >= requested_at)
+        AND (cancel_requested_at IS NULL OR cancel_requested_at >= requested_at)),
+    -- the statistics never go over the limits the administrator set
+    CONSTRAINT ck_traffic_captures_counts CHECK (
+        (packet_count IS NULL OR packet_count BETWEEN 0 AND max_packets)
+        AND (byte_count IS NULL OR byte_count BETWEEN 0 AND max_bytes)
+        AND (duration_ms IS NULL OR duration_ms BETWEEN 0 AND (max_seconds + 60) * 1000)
+        AND (dropped_by_tool IS NULL OR dropped_by_tool >= 0)
+        AND (malformed_packets IS NULL OR malformed_packets >= 0)
+        AND (inbound_bytes IS NULL OR inbound_bytes >= 0) AND (outbound_bytes IS NULL OR outbound_bytes >= 0)
+        AND (broadcast_packets IS NULL OR broadcast_packets >= 0)
+        AND (multicast_packets IS NULL OR multicast_packets >= 0)
+        AND (distinct_local_hosts IS NULL OR distinct_local_hosts >= 0)
+        AND (distinct_remote_hosts IS NULL OR distinct_remote_hosts >= 0)),
+    CONSTRAINT ck_traffic_captures_interface CHECK (interface_name IS NULL OR length(btrim(interface_name)) > 0)
 );
 -- History of a network, newest first.
 CREATE INDEX idx_traffic_captures_network ON traffic_captures (network_id, requested_at DESC);
