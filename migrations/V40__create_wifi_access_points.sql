@@ -27,6 +27,10 @@ CREATE TABLE wifi_access_points (
     CONSTRAINT ck_wifi_access_points_times CHECK (times_seen >= 1)
 );
 
+-- Access points of a network, most recently seen first; and the cleanup of those not seen for months.
+CREATE INDEX idx_wifi_access_points_network ON wifi_access_points (home_network_id, last_seen_at DESC);
+CREATE INDEX idx_wifi_access_points_last_seen ON wifi_access_points (last_seen_at);
+
 COMMENT ON TABLE wifi_access_points IS
     'Puntos de acceso (BSSID) que el agente de cada red de Mi Wi-Fi vio alrededor; uno por BSSID, sin copias por escaneo.';
 COMMENT ON COLUMN wifi_access_points.id IS 'Identificador del punto de acceso.';
