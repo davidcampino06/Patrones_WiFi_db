@@ -72,6 +72,8 @@ en la pestaña *Properties* de cada tabla. Una prueba falla si alguien agrega un
 | V39 | `wifi_scan_sessions`: escaneos de las redes Wi-Fi cercanas que hace el agente de Mi Wi-Fi (pedidos con «Escanear ahora» o programados), con su estado (esperando, en curso, completado, fallido), el motivo de la falla, el adaptador, la herramienta y cuánto tardó; uno solo esperando o en curso por red |
 | V40 | `wifi_access_points`: cada punto de acceso (BSSID) visto alrededor de una red, una sola vez (repetir un escaneo actualiza cuándo se vio y cuántas veces); solo la huella con sal del BSSID y su último byte, nunca el BSSID |
 | V41 | `wifi_scan_observations`: lo que vio cada escaneo de cada punto de acceso (señal, canal, banda, radio, seguridad anunciada, si es al que está conectado el agente); lo que el sistema no dio queda en NULL |
+| V42 | `name_source` en los equipos de Mi Wi-Fi y del sensor: de dónde salió el nombre (lo anunció el equipo, lo dio el DNS del router, la red, o el equipo y el router coinciden); nunca un origen sin nombre |
+| V43 | `agent_capabilities`: lo que puede hacer el computador de cada agente (si se permitieron las capturas, qué herramienta tiene, si corre como administrador, modo monitor), una fila por agente |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
