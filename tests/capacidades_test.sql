@@ -31,4 +31,23 @@ SELECT pg_temp.assert_rejected(
     $$UPDATE agent_capabilities SET capture_interfaces = -1$$,
     'the number of capture interfaces is never negative');
 
+INSERT INTO agent_capabilities (network_id, platform, elevated, capture_consent, pktmon, capture_interfaces)
+SELECT network_id, 'Windows', TRUE, TRUE, TRUE, 2 FROM equipo;
+SELECT pg_temp.assert_true(
+    (SELECT capture_consent AND pktmon FROM agent_capabilities WHERE network_id = (SELECT network_id FROM equipo)),
+    'the sensor of a team network says it may capture with pktmon');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_capabilities (network_id) SELECT network_id FROM equipo$$,
+    'one row per sensor of a team network');
+
+DELETE FROM users WHERE username = 'capacidades.prueba';
+SELECT pg_temp.assert_true(
+    NOT EXISTS (SELECT 1 FROM agent_capabilities WHERE home_network_id IS NOT NULL
+                AND home_network_id NOT IN (SELECT id FROM home_networks)),
+    'the capabilities of an agent of Mi Wi-Fi are deleted with the account');
+DELETE FROM networks WHERE id = (SELECT network_id FROM equipo);
+SELECT pg_temp.assert_true(
+    NOT EXISTS (SELECT 1 FROM agent_capabilities WHERE network_id = (SELECT network_id FROM equipo)),
+    'the capabilities of a sensor are deleted with its team network');
+
 ROLLBACK;
