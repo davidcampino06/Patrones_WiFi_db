@@ -11,12 +11,15 @@
 ALTER TABLE agent_devices
     ADD COLUMN name_source VARCHAR(10),
     ADD CONSTRAINT ck_agent_devices_name_source
-        CHECK (name_source IS NULL OR name_source IN ('CONFIRMED', 'ANNOUNCED', 'ROUTER', 'DNS'));
+        CHECK (name_source IS NULL OR name_source IN ('CONFIRMED', 'ANNOUNCED', 'ROUTER', 'DNS')),
+    -- a source only makes sense next to a name
+    ADD CONSTRAINT ck_agent_devices_name_source_name CHECK (name_source IS NULL OR hostname IS NOT NULL);
 
 ALTER TABLE network_sensor_devices
     ADD COLUMN name_source VARCHAR(10),
     ADD CONSTRAINT ck_network_sensor_devices_name_source
-        CHECK (name_source IS NULL OR name_source IN ('CONFIRMED', 'ANNOUNCED', 'ROUTER', 'DNS'));
+        CHECK (name_source IS NULL OR name_source IN ('CONFIRMED', 'ANNOUNCED', 'ROUTER', 'DNS')),
+    ADD CONSTRAINT ck_network_sensor_devices_name_source_name CHECK (name_source IS NULL OR hostname IS NOT NULL);
 
 COMMENT ON COLUMN agent_devices.name_source IS
     'De dónde salió el nombre (hostname): CONFIRMED (dos fuentes coinciden), ANNOUNCED (lo dijo el equipo), ROUTER (el DNS del router) o DNS; NULL si no hay nombre o el agente es anterior a 2.0.0.';
