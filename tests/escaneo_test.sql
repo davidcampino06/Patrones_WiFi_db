@@ -31,5 +31,11 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$UPDATE wifi_scan_sessions SET status = 'FAILED', finished_at = NOW(), failure_reason = 'SOMETHING'$$,
     'the reason of a failure is a known one');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE wifi_scan_sessions SET status = 'COMPLETED'$$,
+    'a finished scan has its end time');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE wifi_scan_sessions SET status = 'COMPLETED', finished_at = NOW(), failure_reason = 'TIMEOUT'$$,
+    'a completed scan has no failure reason');
 
 ROLLBACK;
