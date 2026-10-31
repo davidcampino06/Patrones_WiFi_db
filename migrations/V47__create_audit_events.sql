@@ -26,6 +26,10 @@ CREATE TABLE audit_events (
     CONSTRAINT ck_audit_events_target CHECK (target_id IS NULL OR target_type IS NOT NULL),
     CONSTRAINT ck_audit_events_detail CHECK (detail IS NULL OR length(btrim(detail)) > 0)
 );
+
+-- Newest first, by action and by person (the filters of the audit page).
+CREATE INDEX idx_audit_events_occurred ON audit_events (occurred_at DESC);
+CREATE INDEX idx_audit_events_action ON audit_events (action, occurred_at DESC);
 CREATE INDEX idx_audit_events_actor ON audit_events (actor_id);
 
 COMMENT ON TABLE audit_events IS
