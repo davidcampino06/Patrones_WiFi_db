@@ -18,7 +18,12 @@ CREATE TABLE traffic_capture_findings (
     CONSTRAINT ck_traffic_capture_findings_category CHECK (category IN ('OBSERVED', 'INFERRED')),
     CONSTRAINT ck_traffic_capture_findings_severity CHECK (severity IN ('INFO', 'WARNING', 'CRITICAL')),
     CONSTRAINT ck_traffic_capture_findings_source CHECK (source IN ('AI', 'RULES')),
-    CONSTRAINT ck_traffic_capture_findings_code CHECK (code ~ '^[A-Z][A-Z0-9_]{2,31}$')
+    CONSTRAINT ck_traffic_capture_findings_code CHECK (code ~ '^[A-Z][A-Z0-9_]{2,31}$'),
+    -- an inference always says how sure it is; an observation is a count, not a guess
+    CONSTRAINT ck_traffic_capture_findings_confidence CHECK (
+        (category = 'INFERRED' AND confidence IS NOT NULL AND confidence BETWEEN 0 AND 1)
+        OR (category = 'OBSERVED' AND confidence IS NULL)),
+    CONSTRAINT ck_traffic_capture_findings_text CHECK (length(btrim(title)) > 0 AND length(btrim(evidence)) > 0)
 );
 
 CREATE INDEX idx_traffic_capture_findings_capture ON traffic_capture_findings (capture_id);
