@@ -32,7 +32,9 @@ CREATE TABLE traffic_capture_intervals (
     second_offset SMALLINT NOT NULL,
     packets       INTEGER  NOT NULL,
     bytes         BIGINT   NOT NULL,
-    PRIMARY KEY (capture_id, second_offset)
+    PRIMARY KEY (capture_id, second_offset),
+    CONSTRAINT ck_traffic_capture_intervals_second CHECK (second_offset BETWEEN 0 AND 360),
+    CONSTRAINT ck_traffic_capture_intervals_counts CHECK (packets > 0 AND bytes >= 0)
 );
 
 COMMENT ON TABLE traffic_capture_protocols IS 'Paquetes y bytes de una captura por protocolo.';
