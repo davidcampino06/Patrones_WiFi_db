@@ -112,4 +112,22 @@ SELECT pg_temp.assert_rejected($$UPDATE wifi_scan_observations SET band = '60'$$
 SELECT pg_temp.assert_rejected($$UPDATE wifi_scan_observations SET authentication = 'WPA4'$$,
     'security is one of the known summaries');
 
+UPDATE wifi_scan_sessions SET status = 'COMPLETED', finished_at = NOW(), network_count = 1, access_point_count = 2,
+       duration_ms = 4200, fresh = TRUE;
+INSERT INTO wifi_scan_sessions (home_network_id, origin) SELECT network_id, 'SCHEDULED' FROM casa;
+SELECT pg_temp.assert_true(
+    (SELECT count(*) FROM wifi_scan_sessions WHERE home_network_id = (SELECT network_id FROM casa)) = 2,
+    'once a scan finishes the network can scan again');
+UPDATE wifi_scan_sessions SET status = 'FAILED', finished_at = NOW(), failure_reason = 'LOCATION_PERMISSION'
+WHERE status = 'PENDING';
+
+-- Deleting the account forgets who asked; deleting the network deletes its scans, access points and observations
+DELETE FROM home_networks WHERE id = (SELECT network_id FROM casa);
+SELECT pg_temp.assert_true(
+    NOT EXISTS (SELECT 1 FROM wifi_scan_sessions WHERE home_network_id = (SELECT network_id FROM casa))
+    AND NOT EXISTS (SELECT 1 FROM wifi_access_points WHERE home_network_id = (SELECT network_id FROM casa))
+    AND NOT EXISTS (SELECT 1 FROM wifi_scan_observations o LEFT JOIN wifi_scan_sessions s ON s.id = o.scan_id
+                    WHERE s.id IS NULL),
+    'deleting a network deletes its scans, access points and observations');
+
 ROLLBACK;
