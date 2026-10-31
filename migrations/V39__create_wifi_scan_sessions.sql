@@ -41,6 +41,10 @@ CREATE TABLE wifi_scan_sessions (
         AND (duration_ms IS NULL OR duration_ms >= 0)),
     CONSTRAINT ck_wifi_scan_sessions_interface CHECK (interface_name IS NULL OR length(btrim(interface_name)) > 0)
 );
+
+-- At most one scan waiting or running per network.
+CREATE UNIQUE INDEX uq_wifi_scan_sessions_active ON wifi_scan_sessions (home_network_id)
+    WHERE status IN ('PENDING', 'RUNNING');
 -- History of a network, newest first (the page and the schedule read it).
 CREATE INDEX idx_wifi_scan_sessions_network ON wifi_scan_sessions (home_network_id, requested_at DESC);
 -- Who asked for a scan (deleting an account must not scan the whole table).
