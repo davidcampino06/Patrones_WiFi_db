@@ -24,7 +24,13 @@ CREATE TABLE wifi_scan_sessions (
     network_count      INTEGER,
     access_point_count INTEGER,
     duration_ms        INTEGER,
-    agent_version      VARCHAR(20)
+    agent_version      VARCHAR(20),
+    CONSTRAINT ck_wifi_scan_sessions_origin CHECK (origin IN ('MANUAL', 'SCHEDULED')),
+    CONSTRAINT ck_wifi_scan_sessions_status CHECK (status IN ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED')),
+    CONSTRAINT ck_wifi_scan_sessions_reason CHECK (failure_reason IS NULL OR failure_reason IN (
+        'NO_ADAPTER', 'ADAPTER_OFF', 'SERVICE_OFF', 'LOCATION_PERMISSION', 'COMMAND_FAILED', 'TIMEOUT',
+        'UNREADABLE_OUTPUT', 'UNSUPPORTED_OS', 'AGENT_NO_RESPONSE')),
+    CONSTRAINT ck_wifi_scan_sessions_tool CHECK (scan_tool IS NULL OR scan_tool IN ('NETSH', 'NMCLI'))
 );
 -- History of a network, newest first (the page and the schedule read it).
 CREATE INDEX idx_wifi_scan_sessions_network ON wifi_scan_sessions (home_network_id, requested_at DESC);
