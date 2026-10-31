@@ -81,6 +81,10 @@ CREATE TABLE traffic_captures (
         AND (distinct_remote_hosts IS NULL OR distinct_remote_hosts >= 0)),
     CONSTRAINT ck_traffic_captures_interface CHECK (interface_name IS NULL OR length(btrim(interface_name)) > 0)
 );
+
+-- At most one capture waiting or running per network.
+CREATE UNIQUE INDEX uq_traffic_captures_active ON traffic_captures (network_id)
+    WHERE status IN ('PENDING', 'RUNNING');
 -- History of a network, newest first.
 CREATE INDEX idx_traffic_captures_network ON traffic_captures (network_id, requested_at DESC);
 -- Who asked (deleting an account must not scan the whole table).
