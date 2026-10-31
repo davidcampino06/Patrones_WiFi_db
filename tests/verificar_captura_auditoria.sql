@@ -26,4 +26,25 @@ UNION ALL
 SELECT 'V47 auditoría protegida contra cambios',
        CASE WHEN to_regclass('public.audit_events') IS NOT NULL
              AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_audit_events_protect')
-            THEN 'OK' ELSE 'FALTA' END;
+            THEN 'OK' ELSE 'FALTA' END
+UNION ALL
+SELECT 'V42-V47 descritas en el diccionario de datos',
+       CASE WHEN obj_description('public.agent_capabilities'::regclass) IS NOT NULL
+             AND obj_description('public.traffic_captures'::regclass) IS NOT NULL
+             AND obj_description('public.traffic_capture_findings'::regclass) IS NOT NULL
+             AND obj_description('public.audit_events'::regclass) IS NOT NULL
+            THEN 'OK' ELSE 'FALTA' END
+UNION ALL
+SELECT 'El usuario de la aplicación puede usar las tablas nuevas',
+       CASE WHEN NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'wifisense_app') THEN 'OK (no se usa el rol)'
+            -- one privilege per call: with a list, has_table_privilege is true if ANY of them is held
+            WHEN has_table_privilege('wifisense_app', 'public.agent_capabilities', 'INSERT')
+             AND has_table_privilege('wifisense_app', 'public.agent_capabilities', 'UPDATE')
+             AND has_table_privilege('wifisense_app', 'public.traffic_captures', 'INSERT')
+             AND has_table_privilege('wifisense_app', 'public.traffic_captures', 'UPDATE')
+             AND has_table_privilege('wifisense_app', 'public.traffic_captures', 'DELETE')
+             AND has_table_privilege('wifisense_app', 'public.traffic_capture_protocols', 'INSERT')
+             AND has_table_privilege('wifisense_app', 'public.traffic_capture_findings', 'INSERT')
+             AND has_table_privilege('wifisense_app', 'public.audit_events', 'INSERT')
+             AND has_table_privilege('wifisense_app', 'public.audit_events', 'SELECT')
+            THEN 'OK' ELSE 'FALTA: ejecuta otra vez security/rol_aplicacion.sql' END;
