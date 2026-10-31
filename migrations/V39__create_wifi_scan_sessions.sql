@@ -49,6 +49,8 @@ CREATE UNIQUE INDEX uq_wifi_scan_sessions_active ON wifi_scan_sessions (home_net
 CREATE INDEX idx_wifi_scan_sessions_network ON wifi_scan_sessions (home_network_id, requested_at DESC);
 -- Who asked for a scan (deleting an account must not scan the whole table).
 CREATE INDEX idx_wifi_scan_sessions_requested_by ON wifi_scan_sessions (requested_by);
+-- Nightly cleanup of old scans.
+CREATE INDEX idx_wifi_scan_sessions_requested_at ON wifi_scan_sessions (requested_at);
 
 COMMENT ON TABLE wifi_scan_sessions IS
     'Escaneos de redes Wi-Fi cercanas pedidos desde Mi Wi-Fi o programados, con su estado y por qué fallaron.';
