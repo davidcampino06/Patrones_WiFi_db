@@ -117,7 +117,13 @@ DELETE FROM network_sensor_pairing_codes;
 DELETE FROM network_sensors;
 ROLLBACK;
 SQL
-echo "   OK: the application role uses the new tables"
+# ... but it cannot rewrite the audit: the trigger rejects every change, also for the application
+if psql "$url" -v ON_ERROR_STOP=1 -q -c "BEGIN; SET LOCAL ROLE wifisense_app;
+    INSERT INTO audit_events (actor_role, action, outcome) VALUES ('SYSTEM', 'RETENTION_PURGED', 'SUCCESS');
+    UPDATE audit_events SET outcome = 'FAILED'; COMMIT;" >/dev/null 2>&1; then
+    echo "FAILED: the application role changed an audit row"; exit 1
+fi
+echo "   OK: the application role uses the new tables and cannot change the audit"
 # The team panel starts empty: the cleanup deletes every simulated thing and nothing else.
 psql "$url" -v ON_ERROR_STOP=1 -q -o /dev/null -f mantenimiento/revisar_datos_simulados.sql
 psql "$url" -q -c "INSERT INTO locations (name) VALUES ('Sede real')" \
