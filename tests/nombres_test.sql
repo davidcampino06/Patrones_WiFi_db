@@ -34,4 +34,18 @@ SELECT pg_temp.assert_true(
      WHERE fingerprint = 'aaaa0000bbbb1111cccc3333'),
     'a name and its source are removed together');
 
+-- The sensors of the team networks follow the same rule
+INSERT INTO network_sensor_devices (network_id, fingerprint, hostname, name_source, first_seen_at, last_seen_at)
+SELECT id, 'eeee0000ffff111122223333', 'Impresora-Sala', 'ANNOUNCED', NOW(), NOW() FROM networks LIMIT 1;
+SELECT pg_temp.assert_true(
+    (SELECT name_source FROM network_sensor_devices WHERE fingerprint = 'eeee0000ffff111122223333') = 'ANNOUNCED',
+    'a sensor device keeps the source of its name');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE network_sensor_devices SET name_source = 'NETBIOS' WHERE fingerprint = 'eeee0000ffff111122223333'$$,
+    'a sensor device only accepts the four known sources');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO network_sensor_devices (network_id, fingerprint, name_source, first_seen_at, last_seen_at)
+      SELECT id, 'eeee0000ffff111122224444', 'DNS', NOW(), NOW() FROM networks LIMIT 1$$,
+    'a sensor device cannot have a source without a name');
+
 ROLLBACK;
