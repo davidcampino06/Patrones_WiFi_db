@@ -24,5 +24,11 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO agent_capabilities (home_network_id, network_id)
       SELECT (SELECT network_id FROM casa), (SELECT network_id FROM equipo)$$,
     'a row belongs to a Mi Wi-Fi network or to a team network, not to both');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_capabilities SET monitor_mode = 'MAYBE'$$,
+    'monitor mode is SUPPORTED, UNSUPPORTED or UNKNOWN');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_capabilities SET capture_interfaces = -1$$,
+    'the number of capture interfaces is never negative');
 
 ROLLBACK;
