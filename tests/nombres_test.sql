@@ -28,5 +28,10 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$UPDATE agent_devices SET hostname = NULL WHERE fingerprint = 'aaaa0000bbbb1111cccc3333'$$,
     'a name cannot be removed while its source stays');
+UPDATE agent_devices SET hostname = NULL, name_source = NULL WHERE fingerprint = 'aaaa0000bbbb1111cccc3333';
+SELECT pg_temp.assert_true(
+    (SELECT hostname IS NULL AND name_source IS NULL FROM agent_devices
+     WHERE fingerprint = 'aaaa0000bbbb1111cccc3333'),
+    'a name and its source are removed together');
 
 ROLLBACK;
