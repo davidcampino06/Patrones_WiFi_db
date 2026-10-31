@@ -37,5 +37,15 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$UPDATE wifi_scan_sessions SET status = 'COMPLETED', finished_at = NOW(), failure_reason = 'TIMEOUT'$$,
     'a completed scan has no failure reason');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE wifi_scan_sessions SET started_at = requested_at - INTERVAL '1 minute'$$,
+    'a scan does not start before it was requested');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE wifi_scan_sessions SET network_count = -1$$,
+    'counts are never negative');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE wifi_scan_sessions SET scan_tool = 'IWLIST'$$,
+    'the scan tool is NETSH or NMCLI');
+UPDATE wifi_scan_sessions SET status = 'RUNNING', started_at = NOW(), interface_name = 'Wi-Fi', scan_tool = 'NETSH';
 
 ROLLBACK;
