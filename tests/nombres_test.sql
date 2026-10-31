@@ -19,5 +19,14 @@ SELECT pg_temp.assert_true(
 SELECT pg_temp.assert_true(
     (SELECT name_source FROM agent_devices WHERE fingerprint = 'aaaa0000bbbb1111cccc4444') IS NULL,
     'the maker alone is an estimate, not a name: no source');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_devices SET name_source = 'GUESS' WHERE fingerprint = 'aaaa0000bbbb1111cccc2222'$$,
+    'the source of a name is CONFIRMED, ANNOUNCED, ROUTER or DNS');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_devices SET name_source = 'ANNOUNCED' WHERE fingerprint = 'aaaa0000bbbb1111cccc4444'$$,
+    'a source without a name is rejected');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE agent_devices SET hostname = NULL WHERE fingerprint = 'aaaa0000bbbb1111cccc3333'$$,
+    'a name cannot be removed while its source stays');
 
 ROLLBACK;
