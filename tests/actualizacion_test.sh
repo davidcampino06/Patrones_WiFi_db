@@ -86,6 +86,16 @@ INSERT INTO ai_model_versions (version, algorithm, samples, networks, data_from,
                                training_set)
 VALUES ('real-rol', 'IsolationForest', 600, 1, NOW() - INTERVAL '3 days', NOW(), 'PROMOTED', 'Prueba', TRUE, '[]');
 UPDATE ai_model_versions SET active = FALSE;
+INSERT INTO wifi_scan_sessions (home_network_id, origin) SELECT id, 'MANUAL' FROM home_networks LIMIT 1;
+UPDATE wifi_scan_sessions SET status = 'RUNNING', started_at = NOW();
+INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, ssid, first_seen_at, last_seen_at)
+SELECT id, repeat('cd', 12), 'Vecino', NOW(), NOW() FROM home_networks LIMIT 1;
+INSERT INTO wifi_scan_observations (scan_id, access_point_id, signal_percent)
+SELECT s.id, a.id, 70 FROM wifi_scan_sessions s, wifi_access_points a;
+UPDATE wifi_scan_sessions SET status = 'COMPLETED', finished_at = NOW(), network_count = 1, access_point_count = 1;
+DELETE FROM wifi_scan_observations;
+DELETE FROM wifi_access_points;
+DELETE FROM wifi_scan_sessions;
 DELETE FROM network_sensor_devices;
 DELETE FROM network_sensor_reports;
 DELETE FROM network_sensor_pairing_codes;
