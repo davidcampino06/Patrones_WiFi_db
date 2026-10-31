@@ -3,11 +3,11 @@
 # must stop cleanly (changing nothing) if two accounts only differ in upper/lower case.
 # Usage: ADMIN_URL=postgresql://postgres:<pass>@localhost:5432/postgres tests/actualizacion_test.sh
 # DEPLOYED is the oldest production state to upgrade from (default 25, after Avance 10); CURRENT is production today
-# (default 33, after Avance 11, with the application role).
+# (default 38, after Avance 16, with the application role).
 set -euo pipefail
 : "${ADMIN_URL:?Set ADMIN_URL to a user that can create databases, e.g. postgresql://postgres:secret@localhost:5432/postgres}"
 DEPLOYED=${DEPLOYED:-25}
-CURRENT=${CURRENT:-37}
+CURRENT=${CURRENT:-38}
 cd "$(dirname "$0")/.."
 
 version() { basename "$1" | sed -E 's/^V([0-9]+)__.*/\1/'; }
