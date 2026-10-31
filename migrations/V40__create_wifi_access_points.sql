@@ -16,7 +16,15 @@ CREATE TABLE wifi_access_points (
     first_seen_at     TIMESTAMPTZ NOT NULL,
     last_seen_at      TIMESTAMPTZ NOT NULL,
     times_seen        INTEGER     NOT NULL DEFAULT 1,
-    CONSTRAINT uq_wifi_access_points_bssid UNIQUE (home_network_id, bssid_fingerprint)
+    CONSTRAINT uq_wifi_access_points_bssid UNIQUE (home_network_id, bssid_fingerprint),
+    CONSTRAINT ck_wifi_access_points_fingerprint CHECK (bssid_fingerprint ~ '^[0-9a-f]{24}$'),
+    CONSTRAINT ck_wifi_access_points_suffix CHECK (bssid_suffix IS NULL OR bssid_suffix ~ '^[0-9A-F]{2}$'),
+    -- a hidden network does not say its name; a visible one always has one
+    CONSTRAINT ck_wifi_access_points_hidden CHECK (hidden = (ssid IS NULL)),
+    CONSTRAINT ck_wifi_access_points_ssid CHECK (ssid IS NULL OR length(ssid) > 0),
+    CONSTRAINT ck_wifi_access_points_vendor CHECK (vendor IS NULL OR length(btrim(vendor)) > 0),
+    CONSTRAINT ck_wifi_access_points_seen CHECK (last_seen_at >= first_seen_at),
+    CONSTRAINT ck_wifi_access_points_times CHECK (times_seen >= 1)
 );
 
 COMMENT ON TABLE wifi_access_points IS
