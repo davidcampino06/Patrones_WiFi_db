@@ -19,6 +19,15 @@ CREATE TABLE traffic_capture_ports (
     PRIMARY KEY (capture_id, transport, port)
 );
 
+-- Traffic per second of the capture (second 0 is the start). Seconds without traffic are not stored.
+CREATE TABLE traffic_capture_intervals (
+    capture_id    BIGINT   NOT NULL REFERENCES traffic_captures (id) ON DELETE CASCADE,
+    second_offset SMALLINT NOT NULL,
+    packets       INTEGER  NOT NULL,
+    bytes         BIGINT   NOT NULL,
+    PRIMARY KEY (capture_id, second_offset)
+);
+
 COMMENT ON TABLE traffic_capture_protocols IS 'Paquetes y bytes de una captura por protocolo.';
 COMMENT ON COLUMN traffic_capture_protocols.capture_id IS 'Captura.';
 COMMENT ON COLUMN traffic_capture_protocols.protocol IS
@@ -31,3 +40,8 @@ COMMENT ON COLUMN traffic_capture_ports.transport IS 'TCP o UDP.';
 COMMENT ON COLUMN traffic_capture_ports.port IS 'Puerto del servicio (el menor de los dos, o el bien conocido).';
 COMMENT ON COLUMN traffic_capture_ports.packets IS 'Paquetes de ese servicio.';
 COMMENT ON COLUMN traffic_capture_ports.bytes IS 'Bytes de ese servicio.';
+COMMENT ON TABLE traffic_capture_intervals IS 'Paquetes y bytes de una captura en cada segundo (los segundos sin tráfico no se guardan).';
+COMMENT ON COLUMN traffic_capture_intervals.capture_id IS 'Captura.';
+COMMENT ON COLUMN traffic_capture_intervals.second_offset IS 'Segundo de la captura (0 = el comienzo).';
+COMMENT ON COLUMN traffic_capture_intervals.packets IS 'Paquetes en ese segundo.';
+COMMENT ON COLUMN traffic_capture_intervals.bytes IS 'Bytes en ese segundo.';
