@@ -19,7 +19,12 @@ CREATE TABLE audit_events (
     target_type    VARCHAR(20),
     target_id      BIGINT,
     network_id     BIGINT,
-    detail         VARCHAR(300)
+    detail         VARCHAR(300),
+    CONSTRAINT ck_audit_events_action CHECK (action ~ '^[A-Z][A-Z_]{2,31}$'),
+    CONSTRAINT ck_audit_events_outcome CHECK (outcome IN ('SUCCESS', 'DENIED', 'FAILED')),
+    CONSTRAINT ck_audit_events_role CHECK (actor_role IS NULL OR actor_role IN ('ADMIN', 'ANALYST', 'VIEWER', 'USER', 'SYSTEM')),
+    CONSTRAINT ck_audit_events_target CHECK (target_id IS NULL OR target_type IS NOT NULL),
+    CONSTRAINT ck_audit_events_detail CHECK (detail IS NULL OR length(btrim(detail)) > 0)
 );
 CREATE INDEX idx_audit_events_actor ON audit_events (actor_id);
 
