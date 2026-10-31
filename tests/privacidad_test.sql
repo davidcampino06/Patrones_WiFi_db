@@ -71,6 +71,13 @@ SELECT pg_temp.assert_true(
     AND NOT EXISTS (SELECT 1 FROM alert_preferences p LEFT JOIN users u ON u.id = p.user_id WHERE u.id IS NULL),
     '... and its sessions, recovery links and alert preferences');
 SELECT pg_temp.assert_true(
+    NOT EXISTS (SELECT 1 FROM wifi_access_points WHERE bssid_fingerprint = 'ddddeeeeffff000011112222')
+    AND NOT EXISTS (SELECT 1 FROM wifi_scan_sessions s LEFT JOIN home_networks h ON h.id = s.home_network_id
+                    WHERE h.id IS NULL)
+    AND NOT EXISTS (SELECT 1 FROM wifi_scan_observations o LEFT JOIN wifi_scan_sessions s ON s.id = o.scan_id
+                    WHERE s.id IS NULL),
+    '... and the scans of the nearby networks its agent made');
+SELECT pg_temp.assert_true(
     (SELECT networks FROM team_before) = (SELECT count(*) FROM networks)
     AND (SELECT measurements FROM team_before) = (SELECT count(*) FROM measurements),
     'the networks and measurements of the team are not touched');
