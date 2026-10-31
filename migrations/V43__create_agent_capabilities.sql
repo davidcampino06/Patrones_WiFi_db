@@ -27,7 +27,10 @@ CREATE TABLE agent_capabilities (
     -- exactly one owner: a Mi Wi-Fi network or a team network
     CONSTRAINT ck_agent_capabilities_owner CHECK (num_nonnulls(home_network_id, network_id) = 1),
     CONSTRAINT uq_agent_capabilities_home UNIQUE (home_network_id),
-    CONSTRAINT uq_agent_capabilities_network UNIQUE (network_id)
+    CONSTRAINT uq_agent_capabilities_network UNIQUE (network_id),
+    CONSTRAINT ck_agent_capabilities_monitor CHECK (monitor_mode IN ('SUPPORTED', 'UNSUPPORTED', 'UNKNOWN')),
+    CONSTRAINT ck_agent_capabilities_interfaces CHECK (capture_interfaces BETWEEN 0 AND 64),
+    CONSTRAINT ck_agent_capabilities_platform CHECK (platform IS NULL OR length(btrim(platform)) > 0)
 );
 
 COMMENT ON TABLE agent_capabilities IS
