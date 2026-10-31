@@ -16,10 +16,13 @@ CREATE TABLE wifi_scan_observations (
     cipher          VARCHAR(20),
     connected       BOOLEAN     NOT NULL DEFAULT FALSE,
     CONSTRAINT uq_wifi_scan_observations_scan UNIQUE (scan_id, access_point_id),
+    CONSTRAINT ck_wifi_scan_observations_ssid CHECK (ssid IS NULL OR length(ssid) > 0),
     CONSTRAINT ck_wifi_scan_observations_signal CHECK (signal_percent IS NULL OR signal_percent BETWEEN 0 AND 100),
     CONSTRAINT ck_wifi_scan_observations_dbm CHECK (signal_dbm IS NULL OR signal_dbm BETWEEN -120 AND 0),
     CONSTRAINT ck_wifi_scan_observations_channel CHECK (channel IS NULL OR channel BETWEEN 1 AND 233),
-    CONSTRAINT ck_wifi_scan_observations_band CHECK (band IS NULL OR band IN ('2.4', '5', '6'))
+    CONSTRAINT ck_wifi_scan_observations_band CHECK (band IS NULL OR band IN ('2.4', '5', '6')),
+    CONSTRAINT ck_wifi_scan_observations_auth
+        CHECK (authentication IN ('OPEN', 'WEP', 'WPA', 'WPA2', 'WPA3', 'UNKNOWN'))
 );
 
 -- Every scan in which an access point appeared (its history).
