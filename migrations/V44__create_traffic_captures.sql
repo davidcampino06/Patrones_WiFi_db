@@ -89,6 +89,8 @@ CREATE UNIQUE INDEX uq_traffic_captures_active ON traffic_captures (network_id)
 CREATE INDEX idx_traffic_captures_network ON traffic_captures (network_id, requested_at DESC);
 -- Who asked (deleting an account must not scan the whole table).
 CREATE INDEX idx_traffic_captures_requested_by ON traffic_captures (requested_by);
+-- Nightly retention.
+CREATE INDEX idx_traffic_captures_requested_at ON traffic_captures (requested_at);
 
 COMMENT ON TABLE traffic_captures IS
     'Capturas técnicas de tráfico en redes del equipo, pedidas por un administrador y hechas por el sensor; solo estadísticas, nunca contenido ni direcciones.';
