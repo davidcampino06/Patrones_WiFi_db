@@ -68,5 +68,21 @@ SELECT pg_temp.assert_rejected(
                                       last_seen_at)
       SELECT network_id, '111122223333444455556666', 'f1', 'Red', NOW(), NOW() FROM casa$$,
     'the last byte of the BSSID is kept as two upper-case hex digits');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, ssid, hidden, first_seen_at, last_seen_at)
+      SELECT network_id, '111122223333444455556666', 'Visible', TRUE, NOW(), NOW() FROM casa$$,
+    'a hidden network has no name');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, first_seen_at, last_seen_at)
+      SELECT network_id, '111122223333444455556666', NOW(), NOW() FROM casa$$,
+    'a network without a name is marked hidden');
+INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, hidden, first_seen_at, last_seen_at)
+SELECT network_id, '111122223333444455556666', TRUE, NOW(), NOW() FROM casa;
+SELECT pg_temp.assert_rejected(
+    $$UPDATE wifi_access_points SET last_seen_at = first_seen_at - INTERVAL '1 day'$$,
+    'an access point is not last seen before it was first seen');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE wifi_access_points SET times_seen = 0$$,
+    'an access point was seen at least once');
 
 ROLLBACK;
