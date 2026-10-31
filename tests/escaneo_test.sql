@@ -85,4 +85,25 @@ SELECT pg_temp.assert_rejected(
     $$UPDATE wifi_access_points SET times_seen = 0$$,
     'an access point was seen at least once');
 
+-- Observations
+INSERT INTO wifi_scan_observations (scan_id, access_point_id, ssid, signal_percent, channel, band, radio_type,
+                                    authentication, security_label, cipher, connected)
+SELECT s.id, a.id, a.ssid, 82, 44, '5', '802.11ac', 'WPA2', 'WPA2-Personal', 'CCMP', TRUE
+FROM wifi_scan_sessions s JOIN wifi_access_points a ON a.home_network_id = s.home_network_id
+WHERE a.bssid_fingerprint = 'aaaabbbbccccddddeeeeffff';
+INSERT INTO wifi_scan_observations (scan_id, access_point_id)
+SELECT s.id, a.id FROM wifi_scan_sessions s JOIN wifi_access_points a ON a.home_network_id = s.home_network_id
+WHERE a.bssid_fingerprint = '111122223333444455556666';
+SELECT pg_temp.assert_true(
+    (SELECT authentication FROM wifi_scan_observations o JOIN wifi_access_points a ON a.id = o.access_point_id
+     WHERE a.bssid_fingerprint = '111122223333444455556666') = 'UNKNOWN'
+    AND (SELECT signal_percent IS NULL AND channel IS NULL AND band IS NULL FROM wifi_scan_observations o
+         JOIN wifi_access_points a ON a.id = o.access_point_id
+         WHERE a.bssid_fingerprint = '111122223333444455556666'),
+    'what the system did not report stays unknown');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO wifi_scan_observations (scan_id, access_point_id)
+      SELECT scan_id, access_point_id FROM wifi_scan_observations LIMIT 1$$,
+    'a scan sees each access point once');
+
 ROLLBACK;
