@@ -54,6 +54,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE TRIGGER trg_audit_events_protect BEFORE UPDATE OR DELETE ON audit_events
+    FOR EACH ROW EXECUTE FUNCTION audit_events_protect();
+
 COMMENT ON TABLE audit_events IS
     'Auditoría de las operaciones sensibles (capturas, cuentas, roles, bloqueos, claves): quién, qué, sobre qué y con qué resultado. No se puede modificar.';
 COMMENT ON COLUMN audit_events.id IS 'Identificador.';
