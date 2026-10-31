@@ -30,7 +30,16 @@ CREATE TABLE wifi_scan_sessions (
     CONSTRAINT ck_wifi_scan_sessions_reason CHECK (failure_reason IS NULL OR failure_reason IN (
         'NO_ADAPTER', 'ADAPTER_OFF', 'SERVICE_OFF', 'LOCATION_PERMISSION', 'COMMAND_FAILED', 'TIMEOUT',
         'UNREADABLE_OUTPUT', 'UNSUPPORTED_OS', 'AGENT_NO_RESPONSE')),
-    CONSTRAINT ck_wifi_scan_sessions_tool CHECK (scan_tool IS NULL OR scan_tool IN ('NETSH', 'NMCLI'))
+    CONSTRAINT ck_wifi_scan_sessions_tool CHECK (scan_tool IS NULL OR scan_tool IN ('NETSH', 'NMCLI')),
+    -- a finished scan has its end time; a failed one says why and a completed one does not
+    CONSTRAINT ck_wifi_scan_sessions_finished CHECK ((status IN ('COMPLETED', 'FAILED')) = (finished_at IS NOT NULL)),
+    CONSTRAINT ck_wifi_scan_sessions_failed CHECK ((status = 'FAILED') = (failure_reason IS NOT NULL)),
+    CONSTRAINT ck_wifi_scan_sessions_order CHECK ((started_at IS NULL OR started_at >= requested_at)
+        AND (finished_at IS NULL OR finished_at >= requested_at)),
+    CONSTRAINT ck_wifi_scan_sessions_counts CHECK ((network_count IS NULL OR network_count >= 0)
+        AND (access_point_count IS NULL OR access_point_count >= 0)
+        AND (duration_ms IS NULL OR duration_ms >= 0)),
+    CONSTRAINT ck_wifi_scan_sessions_interface CHECK (interface_name IS NULL OR length(btrim(interface_name)) > 0)
 );
 -- History of a network, newest first (the page and the schedule read it).
 CREATE INDEX idx_wifi_scan_sessions_network ON wifi_scan_sessions (home_network_id, requested_at DESC);
