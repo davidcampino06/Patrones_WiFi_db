@@ -55,5 +55,18 @@ SELECT network_id, 'aaaabbbbccccddddeeeeffff', 'F1', 'TP-Link', 'Café ☕ "Veci
 SELECT pg_temp.assert_true(
     (SELECT ssid FROM wifi_access_points WHERE bssid_fingerprint = 'aaaabbbbccccddddeeeeffff') = 'Café ☕ "Vecino"',
     'a network name with accents, symbols and quotes is kept as it is');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, ssid, first_seen_at, last_seen_at)
+      SELECT network_id, 'aaaabbbbccccddddeeeeffff', 'Otra', NOW(), NOW() FROM casa$$,
+    'the same access point is stored once per network (repeating a scan does not copy it)');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, ssid, first_seen_at, last_seen_at)
+      SELECT network_id, 'A4:2B:B0:12:34:56', 'Red', NOW(), NOW() FROM casa$$,
+    'a BSSID is never stored, only its fingerprint');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, bssid_suffix, ssid, first_seen_at,
+                                      last_seen_at)
+      SELECT network_id, '111122223333444455556666', 'f1', 'Red', NOW(), NOW() FROM casa$$,
+    'the last byte of the BSSID is kept as two upper-case hex digits');
 
 ROLLBACK;
