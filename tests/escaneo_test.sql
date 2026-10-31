@@ -48,4 +48,12 @@ SELECT pg_temp.assert_rejected(
     'the scan tool is NETSH or NMCLI');
 UPDATE wifi_scan_sessions SET status = 'RUNNING', started_at = NOW(), interface_name = 'Wi-Fi', scan_tool = 'NETSH';
 
+-- Access points: one per BSSID fingerprint, never the BSSID
+INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, bssid_suffix, vendor, ssid, first_seen_at,
+                                last_seen_at)
+SELECT network_id, 'aaaabbbbccccddddeeeeffff', 'F1', 'TP-Link', 'Café ☕ "Vecino"', NOW(), NOW() FROM casa;
+SELECT pg_temp.assert_true(
+    (SELECT ssid FROM wifi_access_points WHERE bssid_fingerprint = 'aaaabbbbccccddddeeeeffff') = 'Café ☕ "Vecino"',
+    'a network name with accents, symbols and quotes is kept as it is');
+
 ROLLBACK;
