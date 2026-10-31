@@ -25,6 +25,7 @@ CREATE TABLE agent_capabilities (
     capture_interfaces  SMALLINT    NOT NULL DEFAULT 0,
     reported_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     -- exactly one owner: a Mi Wi-Fi network or a team network
+    CONSTRAINT ck_agent_capabilities_owner CHECK (num_nonnulls(home_network_id, network_id) = 1),
     CONSTRAINT uq_agent_capabilities_home UNIQUE (home_network_id),
     CONSTRAINT uq_agent_capabilities_network UNIQUE (network_id)
 );
