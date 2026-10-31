@@ -1,0 +1,18 @@
+-- What the computer of each agent can do (V43): one row per agent, of a Mi Wi-Fi network or of a team network but
+-- never both nor neither, known values only, and deleted with its network. Runs inside a transaction that is rolled
+-- back.
+\ir _asserts.sql
+BEGIN;
+
+INSERT INTO users (username, email, password_hash, role) VALUES ('capacidades.prueba', 'cp@x.io', 'x', 'USER');
+INSERT INTO home_networks (owner_id, name) SELECT id, 'Casa capacidades' FROM users WHERE username = 'capacidades.prueba';
+CREATE TEMP TABLE casa AS SELECT id AS network_id FROM home_networks WHERE name = 'Casa capacidades';
+CREATE TEMP TABLE equipo AS SELECT id AS network_id FROM networks ORDER BY id LIMIT 1;
+
+INSERT INTO agent_capabilities (home_network_id, platform, agent_version) SELECT network_id, 'Windows', '2.0.0' FROM casa;
+SELECT pg_temp.assert_true(
+    (SELECT NOT capture_consent AND NOT elevated AND NOT npcap AND NOT pktmon AND monitor_mode = 'UNKNOWN'
+     FROM agent_capabilities WHERE home_network_id = (SELECT network_id FROM casa)),
+    'by default nothing is allowed nor assumed: no consent, no tools, monitor mode unknown');
+
+ROLLBACK;
