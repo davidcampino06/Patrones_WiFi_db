@@ -15,5 +15,8 @@ SELECT network_id, 'MANUAL', owner_id FROM casa;
 SELECT pg_temp.assert_true(
     (SELECT status FROM wifi_scan_sessions WHERE home_network_id = (SELECT network_id FROM casa)) = 'PENDING',
     'a new scan starts waiting for the agent');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO wifi_scan_sessions (home_network_id, origin) SELECT network_id, 'SCHEDULED' FROM casa$$,
+    'a network has at most one scan waiting or running');
 
 ROLLBACK;
