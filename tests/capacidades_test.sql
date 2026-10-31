@@ -14,5 +14,15 @@ SELECT pg_temp.assert_true(
     (SELECT NOT capture_consent AND NOT elevated AND NOT npcap AND NOT pktmon AND monitor_mode = 'UNKNOWN'
      FROM agent_capabilities WHERE home_network_id = (SELECT network_id FROM casa)),
     'by default nothing is allowed nor assumed: no consent, no tools, monitor mode unknown');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_capabilities (home_network_id, platform) SELECT network_id, 'Windows' FROM casa$$,
+    'one row per agent of Mi Wi-Fi');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_capabilities (platform) VALUES ('Windows')$$,
+    'a row always belongs to an agent');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO agent_capabilities (home_network_id, network_id)
+      SELECT (SELECT network_id FROM casa), (SELECT network_id FROM equipo)$$,
+    'a row belongs to a Mi Wi-Fi network or to a team network, not to both');
 
 ROLLBACK;
