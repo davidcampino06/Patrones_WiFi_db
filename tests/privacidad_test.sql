@@ -33,6 +33,13 @@ SELECT id, 'NEW_DEVICE', 'Apareció 1 equipo nuevo en tu red.' FROM home_network
 INSERT INTO connection_tests (home_network_id, latency_ms, jitter_ms, download_mbps, upload_mbps)
 SELECT id, 20, 2, 100, 20 FROM home_networks WHERE name = 'Casa privada';
 INSERT INTO alert_preferences (user_id) SELECT id FROM users WHERE username = 'privacidad.prueba';
+INSERT INTO wifi_scan_sessions (home_network_id, origin, requested_by)
+SELECT h.id, 'MANUAL', h.owner_id FROM home_networks h WHERE h.name = 'Casa privada';
+INSERT INTO wifi_access_points (home_network_id, bssid_fingerprint, ssid, first_seen_at, last_seen_at)
+SELECT id, 'ddddeeeeffff000011112222', 'Red del vecino', NOW(), NOW() FROM home_networks WHERE name = 'Casa privada';
+INSERT INTO wifi_scan_observations (scan_id, access_point_id, signal_percent)
+SELECT s.id, a.id, 60 FROM wifi_scan_sessions s JOIN wifi_access_points a ON a.home_network_id = s.home_network_id
+WHERE a.bssid_fingerprint = 'ddddeeeeffff000011112222';
 INSERT INTO refresh_tokens (user_id, family_id, token_hash, expires_at)
 SELECT id, gen_random_uuid(), repeat('3', 64), NOW() + INTERVAL '14 days' FROM users WHERE username = 'privacidad.prueba';
 INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
@@ -63,6 +70,13 @@ SELECT pg_temp.assert_true(
     AND NOT EXISTS (SELECT 1 FROM password_reset_tokens WHERE token_hash = repeat('4', 64))
     AND NOT EXISTS (SELECT 1 FROM alert_preferences p LEFT JOIN users u ON u.id = p.user_id WHERE u.id IS NULL),
     '... and its sessions, recovery links and alert preferences');
+SELECT pg_temp.assert_true(
+    NOT EXISTS (SELECT 1 FROM wifi_access_points WHERE bssid_fingerprint = 'ddddeeeeffff000011112222')
+    AND NOT EXISTS (SELECT 1 FROM wifi_scan_sessions s LEFT JOIN home_networks h ON h.id = s.home_network_id
+                    WHERE h.id IS NULL)
+    AND NOT EXISTS (SELECT 1 FROM wifi_scan_observations o LEFT JOIN wifi_scan_sessions s ON s.id = o.scan_id
+                    WHERE s.id IS NULL),
+    '... and the scans of the nearby networks its agent made');
 SELECT pg_temp.assert_true(
     (SELECT networks FROM team_before) = (SELECT count(*) FROM networks)
     AND (SELECT measurements FROM team_before) = (SELECT count(*) FROM measurements),

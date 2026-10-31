@@ -24,7 +24,10 @@ docker-compose.yml  PostgreSQL 16 + Flyway para desarrollo local
 `protocol_statistics`, `analysis_results`, `ai_predictions`, `alerts`, `home_networks`, `connection_tests`,
 `agent_keys`, `agent_reports`, `agent_devices`, `password_reset_tokens`, `agent_pairing_codes`, `alert_preferences`,
 `agent_alerts`, `refresh_tokens`, `network_sensors`, `network_sensor_pairing_codes`, `network_sensor_reports`,
-`network_sensor_devices`, `agent_device_sessions`, `network_sensor_device_sessions` y `ai_model_versions`. Relaciones, restricciones e índices explicados en [docs/schema.md](docs/schema.md).
+`network_sensor_devices`, `agent_device_sessions`, `network_sensor_device_sessions`, `ai_model_versions`,
+`wifi_scan_sessions`, `wifi_access_points`, `wifi_scan_observations`, `agent_capabilities`, `traffic_captures`,
+`traffic_capture_protocols`, `traffic_capture_ports`, `traffic_capture_intervals`, `traffic_capture_findings` y
+`audit_events` (39 en total). Relaciones, restricciones e índices explicados en [docs/schema.md](docs/schema.md).
 
 Cada tabla y cada columna tiene su descripción dentro de la propia base (`COMMENT ON`, V31–V33): en DBeaver se ve
 en la pestaña *Properties* de cada tabla. Una prueba falla si alguien agrega una tabla o columna sin describirla.
@@ -69,6 +72,15 @@ en la pestaña *Properties* de cada tabla. Una prueba falla si alguien agrega un
 | V36 | `network_sensor_reports` y `network_sensor_devices`: lo que ve el sensor de cada red del equipo, como Mi Wi-Fi: cada reporte con la auditoría de seguridad, la calidad y el mejor canal, y los equipos conectados (solo la huella con sal de la MAC, fabricante, nombre, si usa dirección privada y si un administrador lo marcó como no autorizado) |
 | V37 | `agent_device_sessions` y `network_sensor_device_sessions`: cada periodo en que un equipo estuvo conectado (de Mi Wi-Fi o de una red del equipo), con un solo periodo abierto por equipo; se borran con el equipo |
 | V38 | Identificar equipos: `kind` (celular, computador, televisor, impresora, cámara, parlante, consola o IoT), `role` (el computador del agente o el router) y `model` en los equipos; `identify_until` en el agente y el sensor (reportar cada minuto mientras se identifica un equipo). `ai_model_versions`: cada entrenamiento de la IA con mediciones reales, sus métricas, si reemplazó al modelo en uso (uno solo activo) y los datos para reconstruirlo |
+| V39 | `wifi_scan_sessions`: escaneos de las redes Wi-Fi cercanas que hace el agente de Mi Wi-Fi (pedidos con «Escanear ahora» o programados), con su estado (esperando, en curso, completado, fallido), el motivo de la falla, el adaptador, la herramienta y cuánto tardó; uno solo esperando o en curso por red |
+| V40 | `wifi_access_points`: cada punto de acceso (BSSID) visto alrededor de una red, una sola vez (repetir un escaneo actualiza cuándo se vio y cuántas veces); solo la huella con sal del BSSID y su último byte, nunca el BSSID |
+| V41 | `wifi_scan_observations`: lo que vio cada escaneo de cada punto de acceso (señal, canal, banda, radio, seguridad anunciada, si es al que está conectado el agente); lo que el sistema no dio queda en NULL |
+| V42 | `name_source` en los equipos de Mi Wi-Fi y del sensor: de dónde salió el nombre (lo anunció el equipo, lo dio el DNS del router, la red, o el equipo y el router coinciden); nunca un origen sin nombre |
+| V43 | `agent_capabilities`: lo que puede hacer el computador de cada agente (si se permitieron las capturas, qué herramienta tiene, si corre como administrador, modo monitor), una fila por agente |
+| V44 | `traffic_captures`: capturas técnicas de una red del equipo, con el propósito, quién la pidió, los límites, el estado, el motivo de falla o de parada, la herramienta y los totales (solo conteos); una sola esperando o en curso por red |
+| V45 | `traffic_capture_protocols`, `traffic_capture_ports` y `traffic_capture_intervals`: paquetes y bytes por protocolo, por servicio y por segundo de cada captura |
+| V46 | `traffic_capture_findings`: hechos e inferencias de cada captura; una inferencia siempre dice su confianza |
+| V47 | `audit_events`: auditoría de las operaciones sensibles; no se puede modificar y solo se borra lo de más de 30 días |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
@@ -137,7 +149,7 @@ Quién puede conectarse a la base y con qué usuario: [docs/seguridad.md](docs/s
 
 | Archivo | Qué comprueba |
 |---|---|
-| `schema_test.sql` | Las 29 tablas y 30 claves foráneas, que las restricciones rechazan datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta resuelta sin fecha…) y que los datos semilla son coherentes |
+| `schema_test.sql` | Las 39 tablas y 44 claves foráneas, que las restricciones rechazan datos inválidos (rol inexistente, MAC mal formada, pérdida > 100 %, alerta resuelta sin fecha…) y que los datos semilla son coherentes |
 | `optimizacion_test.sql` | Que ninguna clave foránea quede sin índice y que la limpieza por fecha y las consultas frecuentes usen su índice (con `EXPLAIN`) |
 | `integridad_test.sql` | Cuentas únicas sin importar mayúsculas, correos normalizados, nombres no vacíos, JSON como objeto y refresh tokens |
 | `diccionario_test.sql` | Que todas las tablas y columnas tengan descripción |
