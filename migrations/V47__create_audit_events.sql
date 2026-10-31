@@ -32,6 +32,28 @@ CREATE INDEX idx_audit_events_occurred ON audit_events (occurred_at DESC);
 CREATE INDEX idx_audit_events_action ON audit_events (action, occurred_at DESC);
 CREATE INDEX idx_audit_events_actor ON audit_events (actor_id);
 
+CREATE FUNCTION audit_events_protect() RETURNS trigger AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        -- ON DELETE SET NULL of the account: only actor_id changes, to NULL
+        IF OLD.actor_id IS NOT NULL AND NEW.actor_id IS NULL
+           AND (NEW.id, NEW.occurred_at, NEW.actor_username, NEW.actor_role, NEW.action, NEW.outcome, NEW.target_type,
+                NEW.target_id, NEW.network_id, NEW.detail)
+               IS NOT DISTINCT FROM
+               (OLD.id, OLD.occurred_at, OLD.actor_username, OLD.actor_role, OLD.action, OLD.outcome, OLD.target_type,
+                OLD.target_id, OLD.network_id, OLD.detail) THEN
+            RETURN NEW;
+        END IF;
+        RAISE EXCEPTION 'audit_events no se puede modificar' USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+    IF OLD.occurred_at > NOW() - INTERVAL '30 days' THEN
+        RAISE EXCEPTION 'audit_events: solo se borran registros de más de 30 días'
+            USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
 COMMENT ON TABLE audit_events IS
     'Auditoría de las operaciones sensibles (capturas, cuentas, roles, bloqueos, claves): quién, qué, sobre qué y con qué resultado. No se puede modificar.';
 COMMENT ON COLUMN audit_events.id IS 'Identificador.';
