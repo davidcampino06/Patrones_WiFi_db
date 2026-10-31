@@ -18,5 +18,12 @@ SELECT pg_temp.assert_true(
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO wifi_scan_sessions (home_network_id, origin) SELECT network_id, 'SCHEDULED' FROM casa$$,
     'a network has at most one scan waiting or running');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO wifi_scan_sessions (home_network_id, origin, status, finished_at)
+      SELECT network_id, 'AUTOMATIC', 'COMPLETED', NOW() FROM casa$$,
+    'the origin is MANUAL or SCHEDULED');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE wifi_scan_sessions SET status = 'DONE'$$,
+    'the status is one of the four known ones');
 
 ROLLBACK;
