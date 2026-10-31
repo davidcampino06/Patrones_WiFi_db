@@ -42,7 +42,21 @@ CREATE TABLE traffic_captures (
     multicast_packets     INTEGER,
     distinct_local_hosts  SMALLINT,
     distinct_remote_hosts INTEGER,
-    analyzed_with         VARCHAR(6)
+    analyzed_with         VARCHAR(6),
+    CONSTRAINT ck_traffic_captures_purpose CHECK (length(btrim(purpose)) >= 10),
+    CONSTRAINT ck_traffic_captures_status
+        CHECK (status IN ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED')),
+    -- limits: at most 5 minutes, 100 000 packets and 100 MB
+    CONSTRAINT ck_traffic_captures_limits CHECK (max_seconds BETWEEN 5 AND 300
+        AND max_packets BETWEEN 100 AND 100000 AND max_bytes BETWEEN 1048576 AND 104857600),
+    CONSTRAINT ck_traffic_captures_reason CHECK (failure_reason IS NULL OR failure_reason IN (
+        'NO_CONSENT', 'NO_CAPTURE_TOOL', 'PERMISSION_DENIED', 'NO_INTERFACE', 'CAPTURE_ERROR', 'UNSUPPORTED_OS',
+        'AGENT_NO_RESPONSE')),
+    CONSTRAINT ck_traffic_captures_stop CHECK (stop_reason IS NULL OR stop_reason IN (
+        'DURATION', 'PACKET_LIMIT', 'BYTE_LIMIT', 'CANCELLED')),
+    CONSTRAINT ck_traffic_captures_tool CHECK (capture_tool IS NULL OR capture_tool IN (
+        'NPCAP', 'PKTMON', 'RAW_SOCKET', 'PACKET_SOCKET')),
+    CONSTRAINT ck_traffic_captures_analyzed CHECK (analyzed_with IS NULL OR analyzed_with IN ('AI', 'RULES'))
 );
 -- History of a network, newest first.
 CREATE INDEX idx_traffic_captures_network ON traffic_captures (network_id, requested_at DESC);
