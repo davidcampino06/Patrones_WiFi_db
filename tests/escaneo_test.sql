@@ -105,5 +105,11 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO wifi_scan_observations (scan_id, access_point_id)
       SELECT scan_id, access_point_id FROM wifi_scan_observations LIMIT 1$$,
     'a scan sees each access point once');
+SELECT pg_temp.assert_rejected($$UPDATE wifi_scan_observations SET signal_percent = 101$$, 'signal is 0 to 100 %');
+SELECT pg_temp.assert_rejected($$UPDATE wifi_scan_observations SET signal_dbm = 5$$, 'dBm is negative');
+SELECT pg_temp.assert_rejected($$UPDATE wifi_scan_observations SET channel = 0$$, 'channel is 1 to 233');
+SELECT pg_temp.assert_rejected($$UPDATE wifi_scan_observations SET band = '60'$$, 'band is 2.4, 5 or 6 GHz');
+SELECT pg_temp.assert_rejected($$UPDATE wifi_scan_observations SET authentication = 'WPA4'$$,
+    'security is one of the known summaries');
 
 ROLLBACK;
