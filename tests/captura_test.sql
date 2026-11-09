@@ -24,5 +24,9 @@ CREATE TEMP TABLE c AS SELECT id FROM traffic_captures WHERE purpose = 'Revisar 
 SELECT pg_temp.assert_true(
     (SELECT status FROM traffic_captures WHERE id = (SELECT id FROM c)) = 'PENDING',
     'a new capture waits for the sensor');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
+      SELECT network_id, 'Otra captura al mismo tiempo', 10, 1000, 1048576 FROM equipo$$,
+    'a network has at most one capture waiting or running');
 
 ROLLBACK;
