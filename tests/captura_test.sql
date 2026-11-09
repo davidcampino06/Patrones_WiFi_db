@@ -60,5 +60,15 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$UPDATE traffic_captures SET capture_tool = 'WIRESHARK' WHERE id = (SELECT id FROM c)$$,
     'the capture tool is NPCAP, PKTMON, RAW_SOCKET or PACKET_SOCKET');
+UPDATE traffic_captures SET status = 'RUNNING', started_at = NOW(), capture_tool = 'PKTMON', interface_name = 'Wi-Fi'
+WHERE id = (SELECT id FROM c);
+SELECT pg_temp.assert_rejected(
+    $$UPDATE traffic_captures SET status = 'COMPLETED', finished_at = NOW(), stop_reason = 'DURATION',
+             packet_count = 6000, byte_count = 1000 WHERE id = (SELECT id FROM c)$$,
+    'the statistics never go over the packet limit');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE traffic_captures SET status = 'COMPLETED', finished_at = NOW(), stop_reason = 'DURATION',
+             packet_count = 10, byte_count = 1000, dropped_by_tool = -1 WHERE id = (SELECT id FROM c)$$,
+    'the packets dropped by the tool are never negative');
 
 ROLLBACK;
