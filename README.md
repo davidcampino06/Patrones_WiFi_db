@@ -195,3 +195,6 @@ tiene V17–V19, `tests/verificar_recuperacion.sql` lo mismo para V20–V22, `te
 `tests/reversion_test.sh` prueba la estrategia de recuperación: con datos en las tablas viejas y en las nuevas, aplica
 las reversiones `U47`…`U39`, comprueba que el esquema queda **idéntico** al de V38 sin tocar ningún dato viejo, y
 vuelve a aplicar V39–V47 con todas las verificaciones en `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
+DBeaver las claves, los reportes, las vulnerabilidades y los equipos que envía el agente. `docs/consultas_avance24.sql` hace lo mismo con lo
+nuevo del Avance 24: escaneos de redes cercanas y lo que vio cada uno, capacidades de cada agente, capturas técnicas con
+sus protocolos y hallazgos (hechos aparte de inferencias) y la auditoría.
