@@ -30,3 +30,14 @@ FROM agent_capabilities c
 LEFT JOIN home_networks h ON h.id = c.home_network_id
 LEFT JOIN networks n ON n.id = c.network_id
 ORDER BY c.reported_at DESC;
+
+-- 4. Últimas 20 capturas técnicas: propósito, quién la pidió, límites, cómo terminó y cuánto capturó.
+SELECT c.id, n.ssid AS red, u.username AS pedida_por, c.purpose AS proposito, c.status AS estado,
+       c.failure_reason AS motivo, c.stop_reason AS se_detuvo_por, c.capture_tool AS herramienta,
+       c.max_seconds AS max_s, c.max_packets AS max_paquetes, c.packet_count AS paquetes, c.byte_count AS bytes,
+       c.dropped_by_tool AS perdidos_herramienta, c.analyzed_with AS analizada_con, c.requested_at AS pedida
+FROM traffic_captures c
+JOIN networks n ON n.id = c.network_id
+LEFT JOIN users u ON u.id = c.requested_by
+ORDER BY c.requested_at DESC
+LIMIT 20;
