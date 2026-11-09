@@ -115,6 +115,12 @@ V38 agrega a `agent_devices` y `network_sensor_devices` el tipo de equipo (`kind
   mide el mismo agente de Mi Wi-Fi instalado en un computador de esa red. Tablas propias en vez de reutilizar
   `agent_keys`: una clave de agente pertenece a la red de un usuario y una clave de sensor a una red del equipo, y
   así ninguna consulta de un lado puede tocar los datos del otro.
+- **Redes cercanas (V39–V41)**: un escaneo es una tarea con estado (pendiente, en curso, completado o fallido) y su
+  motivo de falla, porque el agente lo hace en el computador del usuario y puede no responder. Los puntos de acceso se
+  guardan una vez por BSSID y cada escaneo solo agrega una observación: repetir un escaneo no copia la tabla. Como con
+  los equipos, el BSSID no llega a la base (solo su huella con sal y su último byte) y lo que el sistema no reportó
+  queda en NULL en vez de calcularse. Que una red aparezca no la vuelve del usuario: estas tablas solo describen lo
+  que vio la antena.
 
 ## Índices
 
