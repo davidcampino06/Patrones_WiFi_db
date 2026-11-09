@@ -89,4 +89,17 @@ SELECT pg_temp.assert_true(
     (SELECT status FROM traffic_captures WHERE purpose = 'Segunda captura despues de la primera') = 'CANCELLED',
     'a capture that had not started can be cancelled');
 
+-- Statistics
+INSERT INTO traffic_capture_protocols (capture_id, protocol, packets, bytes)
+SELECT id, p, n, b FROM c, (VALUES ('HTTPS', 700, 600000), ('DNS', 120, 12000), ('ARP', 40, 2400)) AS v(p, n, b);
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_protocols (capture_id, protocol, packets, bytes) SELECT id, 'TELNET', 1, 1 FROM c$$,
+    'protocols come from a known list');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_protocols (capture_id, protocol, packets, bytes) SELECT id, 'DNS', 1, 1 FROM c$$,
+    'each protocol appears once per capture');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_protocols (capture_id, protocol, packets, bytes) SELECT id, 'UDP', 0, 0 FROM c$$,
+    'a protocol without packets is not stored');
+
 ROLLBACK;
