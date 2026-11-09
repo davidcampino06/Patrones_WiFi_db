@@ -11,7 +11,7 @@ reversion/    U39…U47: deshacen las migraciones del Avance 24 (y revertir.sh p
 seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios), solo para demostraciones
 security/     rol_aplicacion.sql: rol con permisos mínimos para el backend
 mantenimiento/ revisar_ y borrar_datos_simulados.sql: dejar el panel del equipo sin datos simulados
-tests/        *_test.sql (pruebas), actualizacion_test.sh (actualizar una base con datos),
+tests/        *_test.sql (pruebas), actualizacion_test.sh (actualizar una base con datos), reversion_test.sh (deshacer y rehacer),
               revisar_antes_de_aplicar.sql y verificar_*.sql (solo lectura, para Railway)
 docs/         schema.md (diagrama, tablas, decisiones e índices), seguridad.md y respaldo.md (copias de seguridad)
 apply.sh      aplica migraciones con psql (alternativa a Flyway)
