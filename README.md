@@ -6,7 +6,8 @@ backend se conecta a esta base de datos.
 ## Contenido
 
 ```text
-migrations/   V1…V38 en formato Flyway (V<n>__<descripcion>.sql)
+migrations/   V1…V47 en formato Flyway (V<n>__<descripcion>.sql)
+reversion/    U39…U47: deshacen las migraciones del Avance 24 (y revertir.sh para aplicarlas en orden inverso)
 seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios), solo para demostraciones
 security/     rol_aplicacion.sql: rol con permisos mínimos para el backend
 mantenimiento/ revisar_ y borrar_datos_simulados.sql: dejar el panel del equipo sin datos simulados
