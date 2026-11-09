@@ -46,4 +46,10 @@ SELECT pg_temp.assert_true(
     NOT EXISTS (SELECT 1 FROM audit_events WHERE occurred_at < NOW() - INTERVAL '365 days'),
     'the retention deletes the old rows');
 
+-- Deleting the account empties actor_id but keeps who it was
+DELETE FROM users WHERE username = 'auditoria.admin';
+SELECT pg_temp.assert_true(
+    (SELECT actor_id IS NULL AND actor_username = 'auditoria.admin' FROM audit_events WHERE target_id = 7),
+    'deleting an account keeps its name in the audit');
+
 ROLLBACK;
