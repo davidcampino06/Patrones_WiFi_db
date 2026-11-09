@@ -129,6 +129,9 @@ V38 agrega a `agent_devices` y `network_sensor_devices` el tipo de equipo (`kind
   un paquete, y los totales nunca pueden pasar los límites que puso el administrador. Los hechos y las inferencias
   van en la misma tabla pero con `category`, y una inferencia sin confianza se rechaza: la página nunca puede mostrar
   una suposición como una medición.
+- **Auditoría que no se puede editar (V47)**: un disparador rechaza cualquier `UPDATE` (salvo que la base misma vacíe
+  `actor_id` al borrar la cuenta) y cualquier `DELETE` de filas de menos de 30 días, incluso del rol de la aplicación.
+  El nombre de quien hizo la operación se copia, así la traza sigue diciendo quién fue aunque se borre la cuenta.
 
 ## Índices
 
