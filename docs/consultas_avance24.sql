@@ -56,3 +56,10 @@ SELECT f.capture_id AS captura, f.category AS tipo, f.severity AS gravedad, f.co
        f.confidence AS confianza, f.source AS fuente, f.evidence AS evidencia
 FROM traffic_capture_findings f
 ORDER BY f.capture_id DESC, f.category, f.confidence DESC NULLS FIRST;
+
+-- 7. Auditoría de los últimos 7 días: quién hizo qué, con qué resultado (los DENIED son intentos sin permiso).
+SELECT e.occurred_at AS cuando, e.actor_username AS quien, e.actor_role AS rol, e.action AS accion,
+       e.outcome AS resultado, e.target_type AS sobre, e.target_id AS id, e.detail AS detalle
+FROM audit_events e
+WHERE e.occurred_at > NOW() - INTERVAL '7 days'
+ORDER BY e.occurred_at DESC;
