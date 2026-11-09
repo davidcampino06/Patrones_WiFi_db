@@ -124,6 +124,11 @@ V38 agrega a `agent_devices` y `network_sensor_devices` el tipo de equipo (`kind
 - **Origen del nombre de un equipo (V42)**: `name_source` dice si el nombre lo anunció el equipo, lo dio el DNS del
   router, lo dio la red o el equipo y el router coinciden. Un `CHECK` impide guardar un origen sin nombre, para que una
   estimación (solo el fabricante) nunca parezca un nombre.
+- **Capturas técnicas (V43–V46)**: como un escaneo, una captura es una tarea con estado y motivo, porque la hace el
+  sensor en otro computador. La base solo guarda conteos: no hay ninguna columna para una IP, una MAC o el contenido de
+  un paquete, y los totales nunca pueden pasar los límites que puso el administrador. Los hechos y las inferencias
+  van en la misma tabla pero con `category`, y una inferencia sin confianza se rechaza: la página nunca puede mostrar
+  una suposición como una medición.
 
 ## Índices
 
