@@ -108,5 +108,10 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO traffic_capture_ports (capture_id, transport, port, packets, bytes) SELECT id, 'UDP', 70000, 1, 1 FROM c$$,
     'a port is between 0 and 65535');
+INSERT INTO traffic_capture_intervals (capture_id, second_offset, packets, bytes)
+SELECT id, s, 40, 28000 FROM c, generate_series(0, 29) AS s;
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_intervals (capture_id, second_offset, packets, bytes) SELECT id, 999, 1, 1 FROM c$$,
+    'an interval falls inside the capture');
 
 ROLLBACK;
