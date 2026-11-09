@@ -17,4 +17,12 @@ SELECT pg_temp.assert_true(
                   AND (column_name ~ '(^|_)(ip|mac|address|payload|content|bssid)($|_)')),
     'the capture tables have no column for addresses, MACs or packet content');
 
+-- Life of a capture
+INSERT INTO traffic_captures (network_id, requested_by, purpose, max_seconds, max_packets, max_bytes)
+SELECT network_id, admin_id, 'Revisar picos de latencia en la sala', 30, 5000, 10485760 FROM equipo;
+CREATE TEMP TABLE c AS SELECT id FROM traffic_captures WHERE purpose = 'Revisar picos de latencia en la sala';
+SELECT pg_temp.assert_true(
+    (SELECT status FROM traffic_captures WHERE id = (SELECT id FROM c)) = 'PENDING',
+    'a new capture waits for the sensor');
+
 ROLLBACK;
