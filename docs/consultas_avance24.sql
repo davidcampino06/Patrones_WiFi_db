@@ -63,3 +63,9 @@ SELECT e.occurred_at AS cuando, e.actor_username AS quien, e.actor_role AS rol, 
 FROM audit_events e
 WHERE e.occurred_at > NOW() - INTERVAL '7 days'
 ORDER BY e.occurred_at DESC;
+
+-- 8. Resumen de la auditoría por operación y resultado (cuántas veces y la última vez).
+SELECT e.action AS accion, e.outcome AS resultado, count(*) AS veces, max(e.occurred_at) AS ultima
+FROM audit_events e
+GROUP BY e.action, e.outcome
+ORDER BY ultima DESC;
