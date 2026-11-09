@@ -70,5 +70,13 @@ SELECT pg_temp.assert_rejected(
     $$UPDATE traffic_captures SET status = 'COMPLETED', finished_at = NOW(), stop_reason = 'DURATION',
              packet_count = 10, byte_count = 1000, dropped_by_tool = -1 WHERE id = (SELECT id FROM c)$$,
     'the packets dropped by the tool are never negative');
+UPDATE traffic_captures SET status = 'COMPLETED', finished_at = NOW(), stop_reason = 'DURATION', duration_ms = 30000,
+       packet_count = 1200, byte_count = 840000, dropped_by_tool = 0, malformed_packets = 0, inbound_bytes = 600000,
+       outbound_bytes = 240000, broadcast_packets = 40, multicast_packets = 80, distinct_local_hosts = 6,
+       distinct_remote_hosts = 25, analyzed_with = 'AI'
+WHERE id = (SELECT id FROM c);
+SELECT pg_temp.assert_true(
+    (SELECT status = 'COMPLETED' AND failure_reason IS NULL FROM traffic_captures WHERE id = (SELECT id FROM c)),
+    'a capture completes with its statistics');
 
 ROLLBACK;
