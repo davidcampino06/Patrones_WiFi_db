@@ -174,6 +174,8 @@ Quién puede conectarse a la base y con qué usuario: [docs/seguridad.md](docs/s
 | `escaneo_test.sql` | Escaneos de redes cercanas (V39–V41): un solo escaneo esperando o en curso por red, uno fallido siempre dice por qué y uno terminado tiene su hora, un punto de acceso por BSSID (nunca el BSSID, solo su huella), nombres con tildes, emoji y comillas tal cual, valores fuera de rango rechazados, lo desconocido queda desconocido y todo se borra con la red |
 | `nombres_test.sql` | Origen del nombre de los equipos (V42): solo los cuatro orígenes conocidos y nunca un origen sin nombre |
 | `capacidades_test.sql` | Capacidades del agente (V43): una fila por agente, de una red de Mi Wi-Fi o del equipo pero nunca de las dos ni de ninguna, valores conocidos y que se borre con la red |
+| `captura_test.sql` | Capturas técnicas (V44–V46): una sola esperando o en curso por red, límites, una falla siempre dice por qué, solo una completada dice por qué paró y tiene totales que nunca pasan sus límites, estadísticas sin repetidos, hechos aparte de inferencias (una inferencia sin confianza se rechaza) y que todo se borre con la red |
+| `auditoria_test.sql` | Auditoría (V47): resultados, roles y códigos conocidos, un objetivo siempre con su tipo, que las filas no se puedan modificar ni borrar las recientes y que borrar la cuenta conserve quién fue |
 | `identidad_modelo_test.sql` | Tipo, rol y modelo de los equipos con valores conocidos (V38) y versiones del modelo: una sola activa, nunca una rechazada, periodo en orden y que el historial quede aunque se borre la cuenta |
 
 `tests/actualizacion_test.sh` crea una base como la de producción (hasta V25, con datos que incluyen los casos
