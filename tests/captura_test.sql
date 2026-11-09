@@ -130,5 +130,13 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO traffic_capture_findings (capture_id, category, code, severity, title, evidence, confidence, source)
       SELECT id, 'OBSERVED', 'PACKETS', 'INFO', 'Un hecho', 'x', 0.5, 'RULES' FROM c$$,
     'an observation is a count, not a guess: no confidence');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_findings (capture_id, category, code, severity, title, evidence, confidence, source)
+      SELECT id, 'INFERRED', 'X', 'WARNING', 'Mal', 'x', 1.5, 'AI' FROM c$$,
+    'confidence is between 0 and 1 (and codes are upper-case words)');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_findings (capture_id, category, code, severity, title, evidence, source)
+      SELECT id, 'GUESS', 'SOMETHING', 'INFO', 'Mal', 'x', 'AI' FROM c$$,
+    'a finding is OBSERVED or INFERRED');
 
 ROLLBACK;
