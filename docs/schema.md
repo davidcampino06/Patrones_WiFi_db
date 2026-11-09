@@ -32,6 +32,13 @@ erDiagram
     agent_devices ||--o{ agent_device_sessions : connected_during
     network_sensor_devices ||--o{ network_sensor_device_sessions : connected_during
     users ||--o{ ai_model_versions : trains
+    home_networks ||--o{ wifi_scan_sessions : scans
+    users ||--o{ wifi_scan_sessions : requests
+    home_networks ||--o{ wifi_access_points : sees_around
+    wifi_scan_sessions ||--o{ wifi_scan_observations : records
+    wifi_access_points ||--o{ wifi_scan_observations : observed_in
+    home_networks ||--o| agent_capabilities : can_do
+    networks ||--o| agent_capabilities : can_do
 ```
 
 ## Tablas
