@@ -50,3 +50,9 @@ FROM (SELECT DISTINCT ON (network_id) * FROM traffic_captures WHERE status = 'CO
 JOIN networks n ON n.id = c.network_id
 JOIN traffic_capture_protocols p ON p.capture_id = c.id
 ORDER BY n.ssid, p.packets DESC;
+
+-- 6. Hallazgos de las capturas: hechos (OBSERVED) aparte de inferencias (INFERRED, con su confianza).
+SELECT f.capture_id AS captura, f.category AS tipo, f.severity AS gravedad, f.code AS codigo, f.title AS titulo,
+       f.confidence AS confianza, f.source AS fuente, f.evidence AS evidencia
+FROM traffic_capture_findings f
+ORDER BY f.capture_id DESC, f.category, f.confidence DESC NULLS FIRST;
