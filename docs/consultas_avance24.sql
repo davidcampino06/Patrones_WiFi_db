@@ -21,3 +21,12 @@ JOIN home_networks h ON h.id = s.home_network_id
 JOIN wifi_scan_observations o ON o.scan_id = s.id
 JOIN wifi_access_points a ON a.id = o.access_point_id
 ORDER BY h.name, o.signal_percent DESC NULLS LAST;
+
+-- 3. Qué puede hacer el computador de cada agente (lo informa el agente 2.0.0): permiso local, herramientas y modo monitor.
+SELECT COALESCE(h.name, n.ssid) AS red, CASE WHEN c.network_id IS NULL THEN 'Mi Wi-Fi' ELSE 'Sensor del equipo' END AS tipo,
+       c.platform AS sistema, c.agent_version AS version, c.elevated AS administrador, c.capture_consent AS permiso,
+       c.npcap, c.pktmon, c.raw_socket, c.packet_socket, c.monitor_mode AS modo_monitor, c.reported_at AS revisado
+FROM agent_capabilities c
+LEFT JOIN home_networks h ON h.id = c.home_network_id
+LEFT JOIN networks n ON n.id = c.network_id
+ORDER BY c.reported_at DESC;
