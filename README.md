@@ -190,5 +190,8 @@ actualización sobre una base con datos, la reversión del Avance 24 y Flyway ap
 
 `tests/verificar_agente.sql` comprueba, sin modificar nada, que una base existente (por ejemplo la de Railway) ya
 tiene V17–V19, `tests/verificar_recuperacion.sql` lo mismo para V20–V22, `tests/verificar_alertas.sql` para V23–V24, `tests/verificar_identificacion.sql` para V25 y
-`tests/verificar_base_terminada.sql` para V26–V33 y `tests/verificar_sensor.sql` para V34–V35 y la limpieza, `tests/verificar_sensor_reportes.sql` para V36, `tests/verificar_sesiones.sql` para V37, `tests/verificar_identidad_modelo.sql` para V38: cada fila debe decir `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
-DBeaver las claves, los reportes, las vulnerabilidades y los equipos que envía el agente.
+`tests/verificar_base_terminada.sql` para V26–V33 y `tests/verificar_sensor.sql` para V34–V35 y la limpieza, `tests/verificar_sensor_reportes.sql` para V36, `tests/verificar_sesiones.sql` para V37, `tests/verificar_identidad_modelo.sql` para V38, `tests/verificar_escaneo.sql` para V39–V41, `tests/verificar_captura_auditoria.sql` para V42–V47: cada fila debe decir `OK`.
+
+`tests/reversion_test.sh` prueba la estrategia de recuperación: con datos en las tablas viejas y en las nuevas, aplica
+las reversiones `U47`…`U39`, comprueba que el esquema queda **idéntico** al de V38 sin tocar ningún dato viejo, y
+vuelve a aplicar V39–V47 con todas las verificaciones en `OK`. `docs/consultas_agente.sql` trae consultas de solo lectura para revisar en
