@@ -14,5 +14,11 @@ VALUES ('analista.uno', 'ANALYST', 'CAPTURE_REQUESTED', 'DENIED', 'Sin permiso d
 SELECT pg_temp.assert_true(
     (SELECT count(*) FROM audit_events WHERE action = 'CAPTURE_REQUESTED') = 2,
     'successful and denied operations are both recorded');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO audit_events (action, outcome) VALUES ('capture requested', 'SUCCESS')$$,
+    'actions are upper-case codes');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO audit_events (action, outcome) VALUES ('USER_DELETED', 'MAYBE')$$,
+    'the outcome is SUCCESS, DENIED or FAILED');
 
 ROLLBACK;
