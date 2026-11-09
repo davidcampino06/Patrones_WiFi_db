@@ -101,5 +101,12 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO traffic_capture_protocols (capture_id, protocol, packets, bytes) SELECT id, 'UDP', 0, 0 FROM c$$,
     'a protocol without packets is not stored');
+INSERT INTO traffic_capture_ports (capture_id, transport, port, packets, bytes) SELECT id, 'TCP', 443, 700, 600000 FROM c;
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_ports (capture_id, transport, port, packets, bytes) SELECT id, 'SCTP', 80, 1, 1 FROM c$$,
+    'a service is TCP or UDP');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_ports (capture_id, transport, port, packets, bytes) SELECT id, 'UDP', 70000, 1, 1 FROM c$$,
+    'a port is between 0 and 65535');
 
 ROLLBACK;
