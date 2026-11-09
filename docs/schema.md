@@ -164,6 +164,10 @@ V38 agrega a `agent_devices` y `network_sensor_devices` el tipo de equipo (`kind
 | `uq_agent_device_sessions_open`, `uq_network_sensor_device_sessions_open` (V37, únicos parciales) | Un solo periodo abierto por equipo; es también la búsqueda de cada reporte («¿este equipo ya estaba conectado?») |
 | `idx_agent_device_sessions_device`, `idx_network_sensor_device_sessions_device`, `..._last_seen` (V37) | Historial de un equipo, del más reciente al más viejo, y limpieza nocturna |
 | `uq_ai_model_versions_active` (V38, único parcial), `idx_ai_model_versions_trained_at`, `idx_ai_model_versions_trained_by` (V38) | Un solo modelo en uso, el historial más reciente primero y la clave foránea indexada |
+| `uq_wifi_scan_sessions_active` (V39, único parcial), `idx_wifi_scan_sessions_network`, `idx_wifi_scan_sessions_requested_by`, `idx_wifi_scan_sessions_requested_at` (V39) | Un solo escaneo esperando o en curso por red (también es la búsqueda del agente), el historial más reciente primero, la clave foránea a la cuenta y la limpieza nocturna |
+| `uq_wifi_access_points_bssid`, `idx_wifi_access_points_network`, `idx_wifi_access_points_last_seen` (V40) | Encontrar en una sola consulta los puntos de acceso de un escaneo que ya se conocían, listarlos por última vez vistos y borrar los que no se ven hace meses |
+| `uq_wifi_scan_observations_scan`, `idx_wifi_scan_observations_access_point` (V41) | Lo que vio un escaneo y en qué escaneos apareció un punto de acceso |
+| `uq_agent_capabilities_home`, `uq_agent_capabilities_network` (V43, únicos) | Una sola fila por agente; es la búsqueda con cada reporte |
 
 `tests/optimizacion_test.sql` comprueba con `EXPLAIN` que cada consulta de esta tabla puede usar su índice y que no
 queda ninguna clave foránea sin índice.
