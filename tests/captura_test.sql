@@ -47,5 +47,12 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$UPDATE traffic_captures SET status = 'PAUSED' WHERE id = (SELECT id FROM c)$$,
     'the status is one of the five known ones');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE traffic_captures SET status = 'FAILED', finished_at = NOW() WHERE id = (SELECT id FROM c)$$,
+    'a failed capture always says why');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE traffic_captures SET status = 'FAILED', finished_at = NOW(), failure_reason = 'BAD_LUCK'
+      WHERE id = (SELECT id FROM c)$$,
+    'the reason of a failure is a known one');
 
 ROLLBACK;
