@@ -26,5 +26,10 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO audit_events (action, outcome, target_id) VALUES ('USER_DELETED', 'SUCCESS', 9)$$,
     'a target id always says what kind of target it is');
+INSERT INTO audit_events (actor_role, action, outcome, detail)
+VALUES ('SYSTEM', 'RETENTION_PURGED', 'SUCCESS', '3 capturas de más de 90 días');
+SELECT pg_temp.assert_true(
+    (SELECT actor_id IS NULL FROM audit_events WHERE action = 'RETENTION_PURGED'),
+    'the automatic tasks are recorded as SYSTEM, without an account');
 
 ROLLBACK;
