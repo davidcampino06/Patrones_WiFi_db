@@ -180,13 +180,13 @@ Quién puede conectarse a la base y con qué usuario: [docs/seguridad.md](docs/s
 
 `tests/actualizacion_test.sh` crea una base como la de producción (hasta V25, con datos que incluyen los casos
 difíciles), aplica las migraciones nuevas y comprueba que no se pierda ninguna fila; también comprueba que V28 se
-detenga sin cambiar nada si hay cuentas repetidas. Además reproduce la producción de hoy (hasta V37, con el rol de la
-aplicación): aplica V38, comprueba que `wifisense_app` ya puede usar las tablas nuevas sin permisos extra y que la
-limpieza borra todo lo simulado sin tocar cuentas, redes de Mi Wi-Fi ni redes reales.
+detenga sin cambiar nada si hay cuentas repetidas. Además reproduce la producción de hoy (hasta V38, con el rol de la
+aplicación): aplica V39–V47, comprueba que `wifisense_app` ya puede usar las tablas nuevas (también las del
+escaneo, las capturas y la auditoría) sin permisos extra y que la limpieza borra todo lo simulado sin tocar cuentas, redes de Mi Wi-Fi ni redes reales.
 
 **GitHub Actions** (`.github/workflows/base-de-datos.yml`) corre en cada Pull Request, sobre PostgreSQL 16: todas
 las migraciones desde cero, los datos semilla, el rol, todas las pruebas, la limpieza de datos simulados, las verificaciones de solo lectura, la
-actualización sobre una base con datos y Flyway aplicando los mismos archivos.
+actualización sobre una base con datos, la reversión del Avance 24 y Flyway aplicando los mismos archivos.
 
 `tests/verificar_agente.sql` comprueba, sin modificar nada, que una base existente (por ejemplo la de Railway) ya
 tiene V17–V19, `tests/verificar_recuperacion.sql` lo mismo para V20–V22, `tests/verificar_alertas.sql` para V23–V24, `tests/verificar_identificacion.sql` para V25 y
