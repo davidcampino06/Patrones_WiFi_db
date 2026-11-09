@@ -14,6 +14,7 @@ mantenimiento/ revisar_ y borrar_datos_simulados.sql: dejar el panel del equipo 
 tests/        *_test.sql (pruebas), actualizacion_test.sh (actualizar una base con datos), reversion_test.sh (deshacer y rehacer),
               revisar_antes_de_aplicar.sql y verificar_*.sql (solo lectura, para Railway)
 docs/         schema.md (diagrama, tablas, decisiones e índices), seguridad.md y respaldo.md (copias de seguridad)
+              consultas_agente.sql y consultas_avance24.sql (consultas de solo lectura para DBeaver)
 apply.sh      aplica migraciones con psql (alternativa a Flyway)
 .github/      pruebas automáticas en cada Pull Request (GitHub Actions)
 docker-compose.yml  PostgreSQL 16 + Flyway para desarrollo local
