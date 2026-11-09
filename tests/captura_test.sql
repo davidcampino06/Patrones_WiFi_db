@@ -44,5 +44,8 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
       SELECT (SELECT id FROM networks ORDER BY id OFFSET 1 LIMIT 1), 'Una captura enorme', 60, 1000, 1073741824$$,
     'a capture keeps at most 100 MB');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE traffic_captures SET status = 'PAUSED' WHERE id = (SELECT id FROM c)$$,
+    'the status is one of the five known ones');
 
 ROLLBACK;
