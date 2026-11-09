@@ -114,6 +114,16 @@ bash apply.sh --seed --security --test  # además, el rol de la aplicación (nec
 3. Ejecuta `tests/verificar_base_terminada.sql`, `tests/verificar_sensor.sql` (y los `verificar_*.sql`
    anteriores): todas las filas en `OK`.
 
+### Si una migración nueva sale mal (recuperación)
+
+1. Antes de aplicar, haz el respaldo de [docs/respaldo.md](docs/respaldo.md). Es la recuperación completa.
+2. Si solo hay que volver a la versión anterior del backend (por ejemplo, el Avance 24 no funcionó en producción),
+   no hace falta restaurar todo: `reversion/revertir.sh 39` deshace V47…V39 en orden inverso, cada una en su
+   transacción, y quita su fila de `flyway_schema_history`. Borra los datos de esas tablas (escaneos, capturas,
+   auditoría), no los de antes. Desde DBeaver se ejecutan los mismos `reversion/U47__...sql` … `U39__...sql`, uno por
+   uno y en ese orden.
+3. Después, `tests/verificar_*.sql` de las versiones anteriores deben seguir en `OK`.
+
 ### Dejar el panel del equipo sin datos simulados
 
 1. `mantenimiento/revisar_datos_simulados.sql` (no cambia nada): qué redes, mediciones y sedes de demostración se
