@@ -121,6 +121,9 @@ V38 agrega a `agent_devices` y `network_sensor_devices` el tipo de equipo (`kind
   los equipos, el BSSID no llega a la base (solo su huella con sal y su último byte) y lo que el sistema no reportó
   queda en NULL en vez de calcularse. Que una red aparezca no la vuelve del usuario: estas tablas solo describen lo
   que vio la antena.
+- **Origen del nombre de un equipo (V42)**: `name_source` dice si el nombre lo anunció el equipo, lo dio el DNS del
+  router, lo dio la red o el equipo y el router coinciden. Un `CHECK` impide guardar un origen sin nombre, para que una
+  estimación (solo el fabricante) nunca parezca un nombre.
 
 ## Índices
 
