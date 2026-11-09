@@ -132,6 +132,9 @@ V38 agrega a `agent_devices` y `network_sensor_devices` el tipo de equipo (`kind
 - **Auditoría que no se puede editar (V47)**: un disparador rechaza cualquier `UPDATE` (salvo que la base misma vacíe
   `actor_id` al borrar la cuenta) y cualquier `DELETE` de filas de menos de 30 días, incluso del rol de la aplicación.
   El nombre de quien hizo la operación se copia, así la traza sigue diciendo quién fue aunque se borre la cuenta.
+- **Recuperación (`reversion/`)**: cada migración del Avance 24 tiene su reversión (`U39`–`U47`), en orden inverso y
+  cada una en su transacción; `tests/reversion_test.sh` comprueba que deshacerlas deja exactamente el esquema anterior
+  sin tocar los datos viejos y que después se pueden volver a aplicar.
 
 ## Índices
 
