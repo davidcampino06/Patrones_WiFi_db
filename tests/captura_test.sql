@@ -114,4 +114,21 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO traffic_capture_intervals (capture_id, second_offset, packets, bytes) SELECT id, 999, 1, 1 FROM c$$,
     'an interval falls inside the capture');
 
+-- Findings: facts apart from inferences
+INSERT INTO traffic_capture_findings (capture_id, category, code, severity, title, evidence, source)
+SELECT id, 'OBSERVED', 'BROADCAST_SHARE', 'INFO', 'Poca difusión', '40 de 1200 paquetes (3 %) fueron de difusión.', 'RULES'
+FROM c;
+INSERT INTO traffic_capture_findings (capture_id, category, code, severity, title, evidence, recommendation,
+                                      confidence, source)
+SELECT id, 'INFERRED', 'TRAFFIC_BURST', 'WARNING', 'Ráfaga de tráfico', 'El segundo 14 tuvo 9 veces la mediana.',
+       'Repite la captura a la misma hora y compara.', 0.62, 'AI' FROM c;
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_findings (capture_id, category, code, severity, title, evidence, source)
+      SELECT id, 'INFERRED', 'TRAFFIC_BURST', 'WARNING', 'Sin confianza', 'x', 'AI' FROM c$$,
+    'an inference always says how sure it is');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_capture_findings (capture_id, category, code, severity, title, evidence, confidence, source)
+      SELECT id, 'OBSERVED', 'PACKETS', 'INFO', 'Un hecho', 'x', 0.5, 'RULES' FROM c$$,
+    'an observation is a count, not a guess: no confidence');
+
 ROLLBACK;
