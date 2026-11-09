@@ -39,5 +39,11 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$DELETE FROM audit_events WHERE action = 'CAPTURE_REQUESTED'$$,
     'an audit row of the last 30 days cannot be deleted');
+INSERT INTO audit_events (occurred_at, actor_role, action, outcome)
+VALUES (NOW() - INTERVAL '400 days', 'SYSTEM', 'RETENTION_PURGED', 'SUCCESS');
+DELETE FROM audit_events WHERE occurred_at < NOW() - INTERVAL '365 days';
+SELECT pg_temp.assert_true(
+    NOT EXISTS (SELECT 1 FROM audit_events WHERE occurred_at < NOW() - INTERVAL '365 days'),
+    'the retention deletes the old rows');
 
 ROLLBACK;
