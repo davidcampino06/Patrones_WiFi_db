@@ -168,6 +168,10 @@ V38 agrega a `agent_devices` y `network_sensor_devices` el tipo de equipo (`kind
 | `uq_wifi_access_points_bssid`, `idx_wifi_access_points_network`, `idx_wifi_access_points_last_seen` (V40) | Encontrar en una sola consulta los puntos de acceso de un escaneo que ya se conocían, listarlos por última vez vistos y borrar los que no se ven hace meses |
 | `uq_wifi_scan_observations_scan`, `idx_wifi_scan_observations_access_point` (V41) | Lo que vio un escaneo y en qué escaneos apareció un punto de acceso |
 | `uq_agent_capabilities_home`, `uq_agent_capabilities_network` (V43, únicos) | Una sola fila por agente; es la búsqueda con cada reporte |
+| `uq_traffic_captures_active` (V44, único parcial), `idx_traffic_captures_network`, `idx_traffic_captures_requested_by`, `idx_traffic_captures_requested_at` (V44) | Una sola captura esperando o en curso por red (también es la búsqueda del sensor), el historial de una red, la clave foránea a la cuenta y la retención nocturna |
+| Claves primarias de `traffic_capture_protocols`, `_ports`, `_intervals` (V45) | Las estadísticas de una captura y que no haya filas repetidas |
+| `idx_traffic_capture_findings_capture` (V46) | Los hallazgos de una captura |
+| `idx_audit_events_occurred`, `idx_audit_events_action`, `idx_audit_events_actor` (V47) | La auditoría más reciente primero, filtrada por operación, la clave foránea a la cuenta y la retención |
 
 `tests/optimizacion_test.sql` comprueba con `EXPLAIN` que cada consulta de esta tabla puede usar su índice y que no
 queda ninguna clave foránea sin índice.
