@@ -57,5 +57,8 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$UPDATE traffic_captures SET status = 'COMPLETED', finished_at = NOW() WHERE id = (SELECT id FROM c)$$,
     'a completed capture says why it stopped and has its statistics');
+SELECT pg_temp.assert_rejected(
+    $$UPDATE traffic_captures SET capture_tool = 'WIRESHARK' WHERE id = (SELECT id FROM c)$$,
+    'the capture tool is NPCAP, PKTMON, RAW_SOCKET or PACKET_SOCKET');
 
 ROLLBACK;
