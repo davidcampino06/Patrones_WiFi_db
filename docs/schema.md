@@ -39,6 +39,13 @@ erDiagram
     wifi_access_points ||--o{ wifi_scan_observations : observed_in
     home_networks ||--o| agent_capabilities : can_do
     networks ||--o| agent_capabilities : can_do
+    networks ||--o{ traffic_captures : captured_by_sensor
+    users ||--o{ traffic_captures : requests
+    traffic_captures ||--o{ traffic_capture_protocols : counts
+    traffic_captures ||--o{ traffic_capture_ports : counts
+    traffic_captures ||--o{ traffic_capture_intervals : counts
+    traffic_captures ||--o{ traffic_capture_findings : explains
+    users ||--o{ audit_events : did
 ```
 
 ## Tablas
