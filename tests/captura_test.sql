@@ -28,5 +28,9 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
       SELECT network_id, 'Otra captura al mismo tiempo', 10, 1000, 1048576 FROM equipo$$,
     'a network has at most one capture waiting or running');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
+      SELECT (SELECT id FROM networks ORDER BY id OFFSET 1 LIMIT 1), 'porque si', 10, 1000, 1048576$$,
+    'the purpose is stated (at least 10 characters)');
 
 ROLLBACK;
