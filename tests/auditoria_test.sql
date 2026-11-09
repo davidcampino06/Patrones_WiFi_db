@@ -20,5 +20,11 @@ SELECT pg_temp.assert_rejected(
 SELECT pg_temp.assert_rejected(
     $$INSERT INTO audit_events (action, outcome) VALUES ('USER_DELETED', 'MAYBE')$$,
     'the outcome is SUCCESS, DENIED or FAILED');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO audit_events (action, outcome, actor_role) VALUES ('USER_DELETED', 'SUCCESS', 'ROOT')$$,
+    'the role is one of the platform roles or SYSTEM');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO audit_events (action, outcome, target_id) VALUES ('USER_DELETED', 'SUCCESS', 9)$$,
+    'a target id always says what kind of target it is');
 
 ROLLBACK;
