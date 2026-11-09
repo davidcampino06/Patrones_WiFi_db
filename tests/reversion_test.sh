@@ -50,3 +50,15 @@ INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max
 INSERT INTO audit_events (actor_username, actor_role, action, outcome) VALUES ('Jefe', 'ADMIN', 'CAPTURE_REQUESTED', 'SUCCESS');
 SQL
 old_rows=$(psql "$url" -At -c "SELECT (SELECT count(*) FROM users) || '/' || (SELECT count(*) FROM measurements) || '/' || (SELECT count(*) FROM home_networks)")
+
+echo "== 3. The reversion, newest first"
+DATABASE_URL="$url" bash reversion/revertir.sh "$FIRST" --si >/dev/null
+schema "$url" > /tmp/wifisense_undo.sql
+if ! diff -q /tmp/wifisense_before.sql /tmp/wifisense_undo.sql >/dev/null; then
+    echo "FAILED: after the reversion the schema is not the one before V$FIRST"
+    diff /tmp/wifisense_before.sql /tmp/wifisense_undo.sql | head -40
+    exit 1
+fi
+after_rows=$(psql "$url" -At -c "SELECT (SELECT count(*) FROM users) || '/' || (SELECT count(*) FROM measurements) || '/' || (SELECT count(*) FROM home_networks)")
+[ "$old_rows" = "$after_rows" ] || { echo "FAILED: the reversion changed older data ($old_rows -> $after_rows)"; exit 1; }
+echo "   OK: same schema as before V$FIRST and the older data untouched ($after_rows)"
