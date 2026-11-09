@@ -32,5 +32,17 @@ SELECT pg_temp.assert_rejected(
     $$INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
       SELECT (SELECT id FROM networks ORDER BY id OFFSET 1 LIMIT 1), 'porque si', 10, 1000, 1048576$$,
     'the purpose is stated (at least 10 characters)');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
+      SELECT (SELECT id FROM networks ORDER BY id OFFSET 1 LIMIT 1), 'Una captura de una hora', 3600, 1000, 1048576$$,
+    'a capture lasts at most 5 minutes');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
+      SELECT (SELECT id FROM networks ORDER BY id OFFSET 1 LIMIT 1), 'Una captura enorme', 60, 1000000, 1048576$$,
+    'a capture keeps at most 100 000 packets');
+SELECT pg_temp.assert_rejected(
+    $$INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
+      SELECT (SELECT id FROM networks ORDER BY id OFFSET 1 LIMIT 1), 'Una captura enorme', 60, 1000, 1073741824$$,
+    'a capture keeps at most 100 MB');
 
 ROLLBACK;
