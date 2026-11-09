@@ -10,3 +10,14 @@ JOIN home_networks h ON h.id = s.home_network_id
 LEFT JOIN users u ON u.id = s.requested_by
 ORDER BY s.requested_at DESC
 LIMIT 20;
+
+-- 2. Lo que vio el último escaneo completado de cada red (sin BSSID: solo su último byte), la señal más fuerte primero.
+SELECT h.name AS red, s.finished_at AS escaneo, a.ssid AS red_vista, a.hidden AS oculta, a.bssid_suffix AS final_bssid,
+       a.vendor AS fabricante, o.signal_percent AS senal_pct, o.channel AS canal, o.band AS banda,
+       o.authentication AS seguridad, o.connected AS conectado
+FROM (SELECT DISTINCT ON (home_network_id) * FROM wifi_scan_sessions WHERE status = 'COMPLETED'
+      ORDER BY home_network_id, finished_at DESC) s
+JOIN home_networks h ON h.id = s.home_network_id
+JOIN wifi_scan_observations o ON o.scan_id = s.id
+JOIN wifi_access_points a ON a.id = o.access_point_id
+ORDER BY h.name, o.signal_percent DESC NULLS LAST;
