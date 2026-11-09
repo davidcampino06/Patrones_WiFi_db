@@ -57,6 +57,9 @@ jobs:
       - name: Actualizar una base que ya tiene datos (como Railway)
         run: bash tests/actualizacion_test.sh
 
+      - name: Deshacer las migraciones del Avance 24 y volver a aplicarlas (estrategia de recuperación)
+        run: bash tests/reversion_test.sh
+
       - name: Flyway aplica las mismas migraciones
         run: |
           psql "$ADMIN_URL" -q -c "CREATE DATABASE flyway_ci"
