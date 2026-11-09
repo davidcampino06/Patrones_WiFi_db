@@ -46,6 +46,20 @@ Cada verificación debe mostrar todas sus filas en `OK` (la de permisos dirá `F
 nueva o después de vaciarla), ejecuta también `security/rol_aplicacion.sql` para que el rol `wifisense_app` tenga sus
 permisos, y pon su contraseña a mano como en [seguridad.md](seguridad.md).
 
+## Deshacer solo las migraciones del Avance 24
+
+Si el backend del Avance 24 se revierte y hay que dejar la base como estaba (V38), sin restaurar todo el respaldo:
+
+```cmd
+set DATABASE_URL=%DATABASE_PUBLIC_URL%
+bash reversion/revertir.sh 39
+```
+
+Pide escribir `SI`, deshace V47 … V39 en orden inverso (cada una en su transacción: si una falla, esa no cambia nada)
+y borra su fila de `flyway_schema_history`. Se pierden los escaneos de redes cercanas, las capturas y la auditoría;
+las cuentas, las redes, las mediciones y los equipos se quedan (el origen de su nombre se pierde, el nombre no). La
+prueba `tests/reversion_test.sh` lo comprueba en cada Pull Request. Igual, **haz el respaldo antes**.
+
 ## Qué no hace falta respaldar
 
 - El **modelo de IA**: el backend lo reconstruye con las mediciones guardadas en `ai_model_versions.training_set`.
