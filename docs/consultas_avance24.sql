@@ -41,3 +41,12 @@ JOIN networks n ON n.id = c.network_id
 LEFT JOIN users u ON u.id = c.requested_by
 ORDER BY c.requested_at DESC
 LIMIT 20;
+
+-- 5. Protocolos de la última captura completada de cada red, con su parte del total.
+SELECT n.ssid AS red, c.id AS captura, p.protocol AS protocolo, p.packets AS paquetes, p.bytes,
+       round(100.0 * p.packets / NULLIF(c.packet_count, 0), 1) AS porcentaje
+FROM (SELECT DISTINCT ON (network_id) * FROM traffic_captures WHERE status = 'COMPLETED'
+      ORDER BY network_id, finished_at DESC) c
+JOIN networks n ON n.id = c.network_id
+JOIN traffic_capture_protocols p ON p.capture_id = c.id
+ORDER BY n.ssid, p.packets DESC;
