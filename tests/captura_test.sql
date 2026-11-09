@@ -139,4 +139,18 @@ SELECT pg_temp.assert_rejected(
       SELECT id, 'GUESS', 'SOMETHING', 'INFO', 'Mal', 'x', 'AI' FROM c$$,
     'a finding is OBSERVED or INFERRED');
 
+-- Deleting the network deletes its captures and everything they produced; deleting the admin keeps them
+DELETE FROM users WHERE username = 'captura.admin';
+SELECT pg_temp.assert_true(
+    (SELECT requested_by IS NULL FROM traffic_captures WHERE id = (SELECT id FROM c)),
+    'deleting the account that asked for a capture keeps the capture without the person');
+DELETE FROM networks WHERE id = (SELECT network_id FROM equipo);
+SELECT pg_temp.assert_true(
+    NOT EXISTS (SELECT 1 FROM traffic_captures WHERE network_id = (SELECT network_id FROM equipo))
+    AND NOT EXISTS (SELECT 1 FROM traffic_capture_protocols WHERE capture_id = (SELECT id FROM c))
+    AND NOT EXISTS (SELECT 1 FROM traffic_capture_ports WHERE capture_id = (SELECT id FROM c))
+    AND NOT EXISTS (SELECT 1 FROM traffic_capture_intervals WHERE capture_id = (SELECT id FROM c))
+    AND NOT EXISTS (SELECT 1 FROM traffic_capture_findings WHERE capture_id = (SELECT id FROM c)),
+    'deleting a team network deletes its captures, statistics and findings');
+
 ROLLBACK;
