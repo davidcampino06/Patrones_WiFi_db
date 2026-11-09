@@ -62,3 +62,13 @@ fi
 after_rows=$(psql "$url" -At -c "SELECT (SELECT count(*) FROM users) || '/' || (SELECT count(*) FROM measurements) || '/' || (SELECT count(*) FROM home_networks)")
 [ "$old_rows" = "$after_rows" ] || { echo "FAILED: the reversion changed older data ($old_rows -> $after_rows)"; exit 1; }
 echo "   OK: same schema as before V$FIRST and the older data untouched ($after_rows)"
+
+echo "== 4. The migrations apply again on top"
+migrate "$url" "$FIRST" 9999
+for check in tests/verificar_escaneo.sql tests/verificar_captura_auditoria.sql; do
+    result=$(psql "$url" -v ON_ERROR_STOP=1 -At -f "$check")
+    if grep -qv 'OK$' <<<"$result"; then
+        echo "FAILED: $check after applying again"; echo "$result" | grep -v 'OK$'; exit 1
+    fi
+done
+echo "   OK: applied again, usable by the application role, and every check of the new tables says OK"
