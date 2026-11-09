@@ -78,5 +78,15 @@ WHERE id = (SELECT id FROM c);
 SELECT pg_temp.assert_true(
     (SELECT status = 'COMPLETED' AND failure_reason IS NULL FROM traffic_captures WHERE id = (SELECT id FROM c)),
     'a capture completes with its statistics');
+INSERT INTO traffic_captures (network_id, purpose, max_seconds, max_packets, max_bytes)
+SELECT network_id, 'Segunda captura despues de la primera', 10, 1000, 1048576 FROM equipo;
+SELECT pg_temp.assert_true(
+    (SELECT count(*) FROM traffic_captures WHERE network_id = (SELECT network_id FROM equipo)) = 2,
+    'once a capture finishes, the network can capture again');
+UPDATE traffic_captures SET status = 'CANCELLED', finished_at = NOW(), cancel_requested_at = NOW()
+WHERE purpose = 'Segunda captura despues de la primera';
+SELECT pg_temp.assert_true(
+    (SELECT status FROM traffic_captures WHERE purpose = 'Segunda captura despues de la primera') = 'CANCELLED',
+    'a capture that had not started can be cancelled');
 
 ROLLBACK;
