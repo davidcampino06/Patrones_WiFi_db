@@ -1,6 +1,6 @@
 -- Run BEFORE applying new migrations (V26 onwards) on a database that already has data (Railway, from DBeaver).
 -- It changes nothing. Every row must say OK. If one says REVISAR, fix that data first: the migration would stop at that point
--- (V28 and V29 refuse data that breaks their rules instead of changing it silently).
+-- (V28, V29 and V48 refuse data that breaks their rules instead of changing it silently).
 SELECT 'Usuarios repetidos sin importar mayúsculas (V28)' AS revision,
        coalesce('REVISAR: ' || (SELECT string_agg(name, ', ') FROM (
            SELECT lower(username) AS name FROM users GROUP BY lower(username) HAVING count(*) > 1) AS d), 'OK') AS estado
@@ -36,4 +36,8 @@ UNION ALL
 SELECT 'Mediciones con una fuente desconocida (V34)',
        coalesce('REVISAR: ' || (SELECT string_agg(DISTINCT source, ', ') FROM measurements
                                 WHERE source NOT IN ('AGENT', 'SIMULATION', 'ROUTER_API', 'SNMP', 'SYSTEM', 'TRAFFIC_CAPTURE')),
-                'OK');
+                'OK')
+UNION ALL
+SELECT 'Cuentas con el rol VIEWER (observador), que ya no existe (V48)',
+       coalesce('REVISAR: ' || (SELECT string_agg(username, ', ') FROM users WHERE role = 'VIEWER')
+                || ' (bórrala o cámbiale el rol desde Usuarios)', 'OK');
