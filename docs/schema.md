@@ -52,7 +52,7 @@ erDiagram
 
 | Tabla | Contenido | Claves y restricciones principales |
 |---|---|---|
-| `users` | Cuentas y rol | `username`, `email` únicos sin importar mayúsculas y correo guardado en minúsculas (V28) · `role` ∈ ADMIN/ANALYST/VIEWER/USER · `password_hash` BCrypt · `phone` opcional en formato internacional (V20) · `password_changed_at`: las sesiones emitidas antes dejan de valer (V20) |
+| `users` | Cuentas y rol | `username`, `email` únicos sin importar mayúsculas y correo guardado en minúsculas (V28) · `role` ∈ ADMIN/ANALYST/USER (el observador VIEWER se quitó en V48; sin rol queda USER) · `password_hash` BCrypt · `phone` opcional en formato internacional (V20) · `password_changed_at`: las sesiones emitidas antes dejan de valer (V20) |
 | `locations` | Sedes | `name` único · nombre, dirección y ciudad no vacíos (V29) |
 | `zones` | Áreas de una sede | FK `location_id` (CASCADE) · único (`location_id`, `name`) · nombre no vacío, piso entre -10 y 200 (V29) |
 | `networks` | Redes Wi-Fi del equipo | FK `zone_id` (RESTRICT) · `bssid` único con formato MAC · banda, canal, seguridad, estado y fuente con CHECK · la fuente por defecto es `AGENT`, su sensor (V34) |
