@@ -6,8 +6,8 @@ backend se conecta a esta base de datos.
 ## Contenido
 
 ```text
-migrations/   V1…V47 en formato Flyway (V<n>__<descripcion>.sql)
-reversion/    U39…U47: deshacen las migraciones del Avance 24 (y revertir.sh para aplicarlas en orden inverso)
+migrations/   V1…V48 en formato Flyway (V<n>__<descripcion>.sql)
+reversion/    U39…U48: deshacen las migraciones del Avance 24 y la V48 (y revertir.sh para aplicarlas en orden inverso)
 seeds/        seed_data.sql: sedes, redes y 24 h de mediciones SIMULADAS (sin usuarios), solo para demostraciones
 security/     rol_aplicacion.sql: rol con permisos mínimos para el backend
 mantenimiento/ revisar_ y borrar_datos_simulados.sql: dejar el panel del equipo sin datos simulados
@@ -83,6 +83,7 @@ en la pestaña *Properties* de cada tabla. Una prueba falla si alguien agrega un
 | V45 | `traffic_capture_protocols`, `traffic_capture_ports` y `traffic_capture_intervals`: paquetes y bytes por protocolo, por servicio y por segundo de cada captura |
 | V46 | `traffic_capture_findings`: hechos e inferencias de cada captura; una inferencia siempre dice su confianza |
 | V47 | `audit_events`: auditoría de las operaciones sensibles; no se puede modificar y solo se borra lo de más de 30 días |
+| V48 | El equipo queda con dos roles, `ADMIN` y `ANALYST` (se quita el observador `VIEWER`); una cuenta sin rol queda como `USER`. Si aún hay una cuenta VIEWER, se detiene y dice cuál, sin cambiar nada |
 
 Las migraciones reconstruyen la base de datos desde cero. Nunca se edita una migración ya aplicada: los cambios
 van en una versión nueva (`V10__...`).
@@ -113,6 +114,17 @@ bash apply.sh --seed --security --test  # además, el rol de la aplicación (nec
 2. Ejecuta las migraciones nuevas, una por una y en orden.
 3. Ejecuta `tests/verificar_base_terminada.sql`, `tests/verificar_sensor.sql` (y los `verificar_*.sql`
    anteriores): todas las filas en `OK`.
+
+### Avance 33: quitar el rol observador (V48)
+
+1. En la página, entra como administrador a **Usuarios** y borra la cuenta de observador (o cámbiale el rol).
+2. En DBeaver ejecuta `tests/revisar_antes_de_aplicar.sql`: la fila «Cuentas con el rol VIEWER» debe decir `OK`.
+3. Ejecuta `migrations/V48__remove_viewer_role.sql`. Si alguna cuenta todavía es VIEWER, se detiene, dice cuál y no
+   cambia nada.
+4. Ejecuta `tests/verificar_roles.sql`: las tres filas en `OK`.
+5. Solo entonces se publica el backend del Avance 33 (el que ya no conoce el rol VIEWER).
+
+Para volver atrás, `reversion/U48__restore_viewer_role.sql` vuelve a permitir el rol sin cambiar ninguna cuenta.
 
 ### Si una migración nueva sale mal (recuperación)
 
@@ -180,7 +192,7 @@ Quién puede conectarse a la base y con qué usuario: [docs/seguridad.md](docs/s
 
 `tests/actualizacion_test.sh` crea una base como la de producción (hasta V25, con datos que incluyen los casos
 difíciles), aplica las migraciones nuevas y comprueba que no se pierda ninguna fila; también comprueba que V28 se
-detenga sin cambiar nada si hay cuentas repetidas. Además reproduce la producción de hoy (hasta V38, con el rol de la
+detenga sin cambiar nada si hay cuentas repetidas, y V48 si queda una cuenta con el rol VIEWER. Además reproduce la producción de hoy (hasta V38, con el rol de la
 aplicación): aplica V39–V47, comprueba que `wifisense_app` ya puede usar las tablas nuevas (también las del
 escaneo, las capturas y la auditoría) sin permisos extra y que la limpieza borra todo lo simulado sin tocar cuentas, redes de Mi Wi-Fi ni redes reales.
 
@@ -190,7 +202,7 @@ actualización sobre una base con datos, la reversión del Avance 24 y Flyway ap
 
 `tests/verificar_agente.sql` comprueba, sin modificar nada, que una base existente (por ejemplo la de Railway) ya
 tiene V17–V19, `tests/verificar_recuperacion.sql` lo mismo para V20–V22, `tests/verificar_alertas.sql` para V23–V24, `tests/verificar_identificacion.sql` para V25 y
-`tests/verificar_base_terminada.sql` para V26–V33 y `tests/verificar_sensor.sql` para V34–V35 y la limpieza, `tests/verificar_sensor_reportes.sql` para V36, `tests/verificar_sesiones.sql` para V37, `tests/verificar_identidad_modelo.sql` para V38, `tests/verificar_escaneo.sql` para V39–V41, `tests/verificar_captura_auditoria.sql` para V42–V47: cada fila debe decir `OK`.
+`tests/verificar_base_terminada.sql` para V26–V33 y `tests/verificar_sensor.sql` para V34–V35 y la limpieza, `tests/verificar_sensor_reportes.sql` para V36, `tests/verificar_sesiones.sql` para V37, `tests/verificar_identidad_modelo.sql` para V38, `tests/verificar_escaneo.sql` para V39–V41, `tests/verificar_captura_auditoria.sql` para V42–V47 y `tests/verificar_roles.sql` para V48: cada fila debe decir `OK`.
 
 `tests/reversion_test.sh` prueba la estrategia de recuperación: con datos en las tablas viejas y en las nuevas, aplica
 las reversiones `U47`…`U39`, comprueba que el esquema queda **idéntico** al de V38 sin tocar ningún dato viejo, y

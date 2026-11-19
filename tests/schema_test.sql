@@ -32,6 +32,13 @@ INSERT INTO users (username, email, password_hash, role) VALUES ('usuario.final'
 SELECT pg_temp.assert_true((SELECT role FROM users WHERE username = 'usuario.final') = 'USER', 'end-user role is accepted');
 DELETE FROM users WHERE username = 'usuario.final';
 SELECT pg_temp.assert_rejected(
+    $$INSERT INTO users (username, email, password_hash, role) VALUES ('lector', 'l@x.io', 'x', 'VIEWER')$$,
+    'the read-only VIEWER role no longer exists (V48)');
+INSERT INTO users (username, email, password_hash) VALUES ('sin.rol', 'sr@x.io', 'x');
+SELECT pg_temp.assert_true((SELECT role FROM users WHERE username = 'sin.rol') = 'USER',
+    'an account without a role gets the one with the least access (V48)');
+DELETE FROM users WHERE username = 'sin.rol';
+SELECT pg_temp.assert_rejected(
     $$INSERT INTO users (username, email, password_hash) VALUES ('dup', 'd1@x.io', 'x'), ('dup', 'd2@x.io', 'x')$$,
     'duplicate username is rejected');
 SELECT pg_temp.assert_rejected(

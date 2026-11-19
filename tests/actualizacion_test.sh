@@ -25,7 +25,8 @@ fresh_db() {
 }
 cleanup() {
     psql "$ADMIN_URL" -q -c "DROP DATABASE IF EXISTS wifisense_upgrade" -c "DROP DATABASE IF EXISTS wifisense_upgrade_dup" \
-        -c "DROP DATABASE IF EXISTS wifisense_upgrade_role" >/dev/null 2>&1 || true
+        -c "DROP DATABASE IF EXISTS wifisense_upgrade_role" \
+        -c "DROP DATABASE IF EXISTS wifisense_upgrade_viewer" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -55,6 +56,22 @@ grep -q "V28: hay cuentas que solo se diferencian en mayúsculas" <<<"$output" |
 untouched=$(psql "$url" -At -c "SELECT count(*) FROM users WHERE email = 'Carlos@wifisense.local'")
 [ "$untouched" = "1" ] || { echo "FAILED: V28 changed data before refusing"; exit 1; }
 echo "   OK: V28 stopped with a clear message and changed nothing"
+
+echo "== 3b. An account that still has the removed VIEWER role: V48 must refuse and change nothing"
+url=$(fresh_db wifisense_upgrade_viewer)
+migrate "$url" 1 47
+psql "$url" -q -c "INSERT INTO users (username, email, password_hash, role) VALUES ('Lector.Viejo', 'lector@ejemplo.com', 'x', 'VIEWER')"
+if output=$(psql "$url" -v ON_ERROR_STOP=1 -q -f migrations/V48__remove_viewer_role.sql 2>&1); then
+    echo "FAILED: V48 accepted an account with the VIEWER role"; exit 1
+fi
+grep -q "V48: estas cuentas todavía tienen el rol VIEWER (observador): Lector.Viejo" <<<"$output" \
+    || { echo "FAILED: unclear message: $output"; exit 1; }
+still=$(psql "$url" -At -c "SELECT role || '/' || pg_get_constraintdef(c.oid) LIKE 'VIEWER/%VIEWER%' FROM users, pg_constraint c
+                            WHERE username = 'Lector.Viejo' AND c.conname = 'ck_users_role'")
+[ "$still" = "t" ] || { echo "FAILED: V48 changed data or the rule before refusing"; exit 1; }
+psql "$url" -q -c "UPDATE users SET role = 'ANALYST' WHERE username = 'Lector.Viejo'"
+psql "$url" -v ON_ERROR_STOP=1 -q -f migrations/V48__remove_viewer_role.sql
+echo "   OK: V48 stopped with a clear message, changed nothing and applied once the account had another role"
 
 echo "== 4. Production today: V1..V$CURRENT, demo data and the application role; then the new migrations"
 url=$(fresh_db wifisense_upgrade_role)
